@@ -6,7 +6,7 @@
 <title>Ders & Antrenman Takip</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<const firebaseConfig = {
+<const> firebaseConfig = {
   apiKey: "AIzaSyBUpqa9rI8Ht6kX7OEGGI_LdisyFjqnxZo",
   authDomain: "elaidaprogramme.firebaseapp.com",
   databaseURL: "https://elaidaprogramme-default-rtdb.europe-west1.firebasedatabase.app",
@@ -14,7 +14,7 @@
   storageBucket: "elaidaprogramme.firebasestorage.app",
   messagingSenderId: "203937367136",
   appId: "1:203937367136:web:ed175344bc2176ced42f05"
-};></const>
+};
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -192,21 +192,19 @@ function emptyDay(){ return { studyEntries:[], training:{done:false,minutes:'',n
 let state = { currentDate: new Date(), days:{}, index:[], view:'day', historyOpen:false };
 
 async function loadIndex(){
-  try{ const snap = await db.ref('daysIndex').get(); return snap.exists() ? Object.values(snap.val()) : []; }
-  catch(e){ console.error('index load failed', e); return []; }
+  const snap = await db.ref('daysIndex').get();
+  return snap.exists() ? Object.values(snap.val()) : [];
 }
 async function saveIndex(idx){
   idx.sort((a,b)=> a.date < b.date ? 1 : -1);
   try{ await db.ref('daysIndex').set(idx); }catch(e){ console.error('index save failed', e); }
 }
 async function loadDay(key){
-  try{
-    const snap = await db.ref('days/'+key).get();
-    if(snap.exists()){
-      const p = snap.val();
-      return { studyEntries: p.studyEntries||[], training: p.training||{done:false,minutes:'',note:''}, events: p.events||[] };
-    }
-  }catch(e){ console.error('day load failed', e); }
+  const snap = await db.ref('days/'+key).get();
+  if(snap.exists()){
+    const p = snap.val();
+    return { studyEntries: p.studyEntries||[], training: p.training||{done:false,minutes:'',note:''}, events: p.events||[] };
+  }
   return emptyDay();
 }
 async function ensureDay(key){
@@ -288,12 +286,17 @@ async function init(){
     await firebase.auth().signInAnonymously();
   }catch(e){
     console.error('auth failed', e);
-    document.getElementById('app').innerHTML = '<div class="loading">Bağlantı kurulamadı. Firebase Authentication\'da "Anonymous" girişin açık olduğundan emin olun.</div>';
+    document.getElementById('app').innerHTML = '<div class="loading" style="text-align:left;white-space:pre-wrap;font-family:monospace;font-size:12px;">GİRİŞ HATASI:<br>Kod: '+(e.code||'yok')+'<br>Mesaj: '+(e.message||e)+'</div>';
     return;
   }
-  state.index = await loadIndex();
-  await ensureDay(dkey(state.currentDate));
-  render();
+  try{
+    state.index = await loadIndex();
+    await ensureDay(dkey(state.currentDate));
+    render();
+  }catch(e){
+    console.error('data load failed', e);
+    document.getElementById('app').innerHTML = '<div class="loading" style="text-align:left;white-space:pre-wrap;font-family:monospace;font-size:12px;">VERİ OKUMA HATASI:<br>Kod: '+(e.code||'yok')+'<br>Mesaj: '+(e.message||e)+'</div>';
+  }
 }
 
 // ---- render dispatch ----
