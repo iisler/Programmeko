@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ders & Antrenman Takip</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<const firebaseConfig = {
+  apiKey: "AIzaSyBUpqa9rI8Ht6kX7OEGGI_LdisyFjqnxZo",
+  authDomain: "elaidaprogramme.firebaseapp.com",
+  databaseURL: "https://elaidaprogramme-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "elaidaprogramme",
+  storageBucket: "elaidaprogramme.firebasestorage.app",
+  messagingSenderId: "203937367136",
+  appId: "1:203937367136:web:ed175344bc2176ced42f05"
+};></const>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "BURAYA_API_KEY",
+    authDomain: "BURAYA_PROJE.firebaseapp.com",
+    databaseURL: "https://BURAYA_PROJE-default-rtdb.firebaseio.com",
+    projectId: "BURAYA_PROJE",
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+</script>
+<style>
+  :root{
+    --bg:#EEF3F0;
+    --paper:#FBFCFA;
+    --ink:#1C2B29;
+    --ink-soft:#5B6B67;
+    --line:#D9E2DD;
+    --study:#2F6F4F;
+    --study-soft:#DCEBE3;
+    --sport:#D9A441;
+    --sport-soft:#FBEED2;
+    --sport-deep:#8A5A15;
+    --event:#6E58A8;
+    --event-soft:#EAE4F5;
+    --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans', sans-serif;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:520px;margin:0 auto;padding:20px 16px 60px;}
+  h1,h2,h3{font-family:'Fraunces', serif;margin:0;letter-spacing:-0.01em;}
+  header.top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;}
+  header.top h1{font-size:22px;font-weight:600;}
+  header.top .tag{font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.06em;}
+
+  .viewtabs{display:flex;gap:6px;margin-bottom:14px;}
+  .viewtabs button{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);cursor:pointer;}
+  .viewtabs button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+
+  .datenav{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;}
+  .datenav button{background:none;border:none;font-size:18px;color:var(--ink);cursor:pointer;padding:6px 10px;border-radius:8px;}
+  .datenav button:hover{background:var(--line);}
+  .datenav .label{text-align:center;flex:1;}
+  .datenav .label .day{font-family:'Fraunces', serif;font-size:16px;font-weight:600;}
+  .datenav .label .sub{font-size:11px;color:var(--ink-soft);font-family:'IBM Plex Mono', monospace;}
+
+  .trail{display:flex;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px 10px;margin-bottom:18px;}
+  .trail-dot{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;border:none;background:none;flex:1;}
+  .trail-dot .wk{font-family:'IBM Plex Mono', monospace;font-size:10px;color:var(--ink-soft);}
+  .trail-dot .dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:var(--paper);position:relative;overflow:visible;}
+  .trail-dot .dot.study{background:var(--study); border-color:var(--study);}
+  .trail-dot .dot.sport{background:var(--sport); border-color:var(--sport);}
+  .trail-dot .dot.both{background:linear-gradient(135deg, var(--study) 50%, var(--sport) 50%); border-color:var(--ink);}
+  .trail-dot.selected .dot{box-shadow:0 0 0 3px var(--ink);}
+  .trail-dot.istoday .wk{color:var(--ink); font-weight:600;}
+  .trail-dot.evt .dot::after{content:'';position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--event);border:1.5px solid var(--paper);}
+
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .card-head h2{font-size:16px;}
+  .card-head .total{font-family:'IBM Plex Mono', monospace;font-size:12px;color:var(--ink-soft);}
+  .icon{width:20px;height:20px;flex-shrink:0;}
+
+  .entry{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
+  .entry:last-child{border-bottom:none;}
+  .entry .swatch{width:8px;height:8px;border-radius:50%;background:var(--study);flex-shrink:0;}
+  .entry .swatch.evt{background:var(--event);}
+  .entry .info{flex:1;min-width:0;}
+  .entry .info .subj{font-weight:600;font-size:14px;}
+  .entry .info .topic{font-size:12px;color:var(--ink-soft);}
+  .entry .mins{font-family:'IBM Plex Mono', monospace;font-size:12px;color:var(--study);background:var(--study-soft);padding:3px 8px;border-radius:20px;white-space:nowrap;}
+  .entry .mins.evt{color:var(--event);background:var(--event-soft);}
+  .entry .del{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:16px;padding:2px 4px;}
+  .empty-note{color:var(--ink-soft);font-size:13px;padding:6px 0 10px;}
+
+  .addform{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .addform input{font-family:'IBM Plex Sans', sans-serif;border:1px solid var(--line);border-radius:9px;padding:9px 10px;font-size:13px;background:#fff;}
+  .addform input[name="subject"],.addform input[name="title"]{flex:1 1 120px;}
+  .addform input[name="topic"],.addform input[name="note"]{flex:2 1 140px;}
+  .addform input[name="minutes"],.addform input[name="time"]{width:70px;flex:0 0 70px;}
+  .addform button{background:var(--study);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+  .addform.event button{background:var(--event);}
+  .addform button:active{transform:scale(0.98);}
+
+  .card.sport{border-color:var(--sport-soft);}
+  .switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .switch-label{font-size:14px;font-weight:500;}
+  .switch{position:relative;width:44px;height:26px;background:var(--line);border-radius:20px;cursor:pointer;border:none;flex-shrink:0;}
+  .switch.on{background:var(--sport);}
+  .switch .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left 0.15s ease;}
+  .switch.on .knob{left:21px;}
+  .switch.small{width:36px;height:20px;}
+  .switch.small .knob{width:14px;height:14px;top:3px;left:3px;}
+  .switch.small.on .knob{left:19px;}
+  .sport-detail{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;}
+  .sport-detail .row{display:flex;gap:8px;align-items:center;}
+  .sport-detail label{font-size:12px;color:var(--ink-soft);width:70px;flex-shrink:0;}
+  .sport-detail input{flex:1;font-family:'IBM Plex Sans', sans-serif;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;}
+  .sport-detail input[name="sportmin"]{flex:0 0 70px;}
+
+  .stats{display:flex;gap:10px;margin-bottom:14px;}
+  .stat{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;}
+  .stat .num{font-family:'IBM Plex Mono', monospace;font-size:18px;font-weight:600;}
+  .stat .lbl{font-size:9.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;}
+
+  .hist-toggle{display:block;width:100%;text-align:center;background:none;border:1px dashed var(--line);border-radius:12px;padding:10px;color:var(--ink-soft);font-size:12px;font-family:'IBM Plex Mono', monospace;cursor:pointer;margin-bottom:14px;}
+
+  .backup-card{display:flex;gap:10px;margin-bottom:14px;}
+  .backup-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 8px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;}
+  .backup-btn .bt{font-size:13px;font-weight:600;color:var(--ink);}
+  .backup-btn .bs{font-size:10px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
+  .backup-btn:active{transform:scale(0.98);}
+  .backup-btn:hover{border-color:var(--ink);}
+  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:12px;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s ease;}
+  .toast.show{opacity:1;}
+  .hist-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px;}
+  .hist-row:last-child{border-bottom:none;}
+  .hist-row .d{width:70px;flex-shrink:0;color:var(--ink-soft);font-family:'IBM Plex Mono', monospace;font-size:11px;}
+  .hist-row .badges{display:flex;gap:5px;flex-wrap:wrap;}
+  .hist-row .badge{font-size:10px;padding:2px 7px;border-radius:20px;font-family:'IBM Plex Mono', monospace;}
+  .hist-row .badge.study{background:var(--study-soft);color:var(--study);}
+  .hist-row .badge.sport{background:var(--sport-soft);color:var(--sport-deep);}
+  .hist-row .badge.event{background:var(--event-soft);color:var(--event);}
+
+  .note{font-size:11px;color:var(--ink-soft);text-align:center;margin-top:20px;line-height:1.5;}
+  .loading{text-align:center;padding:40px 0;color:var(--ink-soft);font-size:13px;}
+
+  /* week view */
+  .weeknav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+  .weeknav button{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:6px 12px;font-size:14px;cursor:pointer;}
+  .weeknav .rng{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);}
+  .weekcard{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;}
+  .weekcard.today{border-color:var(--ink);}
+  .weekcard-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
+  .weekcard-head .wd{font-family:'Fraunces',serif;font-weight:600;font-size:14px;}
+  .weekcard-head .wd .datep{font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:11px;color:var(--ink-soft);margin-left:6px;}
+  .weekcard-head .goto{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace;}
+  .sectionlbl{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin:8px 0 5px;}
+  .chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
+  .chip{display:flex;align-items:center;gap:5px;font-size:11px;padding:4px 9px;border-radius:20px;font-family:'IBM Plex Mono',monospace;}
+  .chip.study{background:var(--study-soft);color:var(--study);}
+  .chip.event{background:var(--event-soft);color:var(--event);}
+  .chip .x{cursor:pointer;font-weight:700;margin-left:2px;}
+  .quickrow{display:flex;gap:6px;margin-bottom:8px;}
+  .quickrow input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12px;font-family:'IBM Plex Sans',sans-serif;}
+  .quickrow input.small{flex:0 0 46px;}
+  .quickrow button{flex:0 0 auto;background:var(--study);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;}
+  .quickrow.event button{background:var(--event);}
+  .weekcard .trainrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);margin-top:2px;}
+  .weekcard .trainrow .lbl{font-size:12px;color:var(--ink-soft);}
+  .weekcard .trainrow .right{display:flex;align-items:center;gap:6px;}
+  .weekcard .trainrow input.mininput{width:46px;border:1px solid var(--line);border-radius:8px;padding:5px 6px;font-size:12px;}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="loading">Yükleniyor…</div></div>
+
+<script>
+const STUDY_ICON = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#2F6F4F" stroke-width="1.8"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5v-13Z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z"/></svg>`;
+const SPORT_ICON = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#8A5A15" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3c2.5 2.5 2.5 15.5 0 18"/><path d="M4.5 8c4 2 11 2 15 0"/><path d="M4.5 16c4-2 11-2 15 0"/></svg>`;
+const EVENT_ICON = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#6E58A8" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>`;
+
+const WEEKDAYS = ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
+const WEEKDAYS_FULL = ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
+const MONTHS = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran','Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+function dkey(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; }
+function mondayOf(d){ const nd=new Date(d); const dow=(nd.getDay()+6)%7; nd.setDate(nd.getDate()-dow); nd.setHours(0,0,0,0); return nd; }
+function addDays(d,n){ const nd=new Date(d); nd.setDate(nd.getDate()+n); return nd; }
+function sameDay(a,b){ return dkey(a)===dkey(b); }
+function emptyDay(){ return { studyEntries:[], training:{done:false,minutes:'',note:''}, events:[] }; }
+
+let state = { currentDate: new Date(), days:{}, index:[], view:'day', historyOpen:false };
+
+async function loadIndex(){
+  try{ const snap = await db.ref('daysIndex').get(); return snap.exists() ? Object.values(snap.val()) : []; }
+  catch(e){ console.error('index load failed', e); return []; }
+}
+async function saveIndex(idx){
+  idx.sort((a,b)=> a.date < b.date ? 1 : -1);
+  try{ await db.ref('daysIndex').set(idx); }catch(e){ console.error('index save failed', e); }
+}
+async function loadDay(key){
+  try{
+    const snap = await db.ref('days/'+key).get();
+    if(snap.exists()){
+      const p = snap.val();
+      return { studyEntries: p.studyEntries||[], training: p.training||{done:false,minutes:'',note:''}, events: p.events||[] };
+    }
+  }catch(e){ console.error('day load failed', e); }
+  return emptyDay();
+}
+async function ensureDay(key){
+  if(state.days[key]) return state.days[key];
+  const d = await loadDay(key);
+  state.days[key] = d;
+  return d;
+}
+function computeSummary(key,data){
+  const studyMinutes = data.studyEntries.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
+  return { date:key, studyMinutes, entryCount:data.studyEntries.length, trainingDone: !!data.training.done, trainingMinutes: parseInt(data.training.minutes)||0, eventCount: (data.events||[]).length };
+}
+async function persist(key){
+  const data = state.days[key];
+  try{ await db.ref('days/'+key).set(data); }catch(e){ console.error('save failed', e); return; }
+  const summary = computeSummary(key,data);
+  const idx = state.index.filter(e=>e.date!==key);
+  if(summary.studyMinutes>0 || summary.trainingDone || summary.eventCount>0) idx.push(summary);
+  state.index = idx;
+  await saveIndex(idx);
+}
+function summaryFor(key){ return state.index.find(e=>e.date===key); }
+function getDay(key){ return state.days[key] || emptyDay(); }
+
+// ---- navigation ----
+async function goToDate(d){
+  state.currentDate = d;
+  state.view = 'day';
+  await ensureDay(dkey(d));
+  render();
+}
+async function showWeek(){
+  state.view = 'week';
+  const mon = mondayOf(state.currentDate);
+  const keys = []; for(let i=0;i<7;i++) keys.push(dkey(addDays(mon,i)));
+  await Promise.all(keys.map(ensureDay));
+  render();
+}
+async function showDay(){ state.view='day'; await ensureDay(dkey(state.currentDate)); render(); }
+async function shiftWeek(delta){ state.currentDate = addDays(state.currentDate, delta*7); await showWeek(); }
+
+// ---- actions (all keyed by date string) ----
+async function addEntry(key, subject, topic, minutes){
+  if(!subject || !minutes) return;
+  const data = await ensureDay(key);
+  data.studyEntries.push({id:Date.now()+Math.random(), subject, topic, minutes});
+  await persist(key); render();
+}
+async function delEntry(key,id){
+  const data = await ensureDay(key);
+  data.studyEntries = data.studyEntries.filter(e=>e.id!==id);
+  await persist(key); render();
+}
+async function toggleTraining(key){
+  const data = await ensureDay(key);
+  data.training.done = !data.training.done;
+  await persist(key); render();
+}
+async function updateTrainingField(key, field, value){
+  const data = await ensureDay(key);
+  data.training[field] = value;
+  await persist(key);
+}
+async function addEvent(key,title,time,note){
+  if(!title) return;
+  const data = await ensureDay(key);
+  data.events = data.events || [];
+  data.events.push({id:Date.now()+Math.random(), title, time: time||'', note: note||''});
+  await persist(key); render();
+}
+async function delEvent(key,id){
+  const data = await ensureDay(key);
+  data.events = (data.events||[]).filter(e=>e.id!==id);
+  await persist(key); render();
+}
+
+async function init(){
+  try{
+    await firebase.auth().signInAnonymously();
+  }catch(e){
+    console.error('auth failed', e);
+    document.getElementById('app').innerHTML = '<div class="loading">Bağlantı kurulamadı. Firebase Authentication\'da "Anonymous" girişin açık olduğundan emin olun.</div>';
+    return;
+  }
+  state.index = await loadIndex();
+  await ensureDay(dkey(state.currentDate));
+  render();
+}
+
+// ---- render dispatch ----
+function render(){
+  const app = document.getElementById('app');
+  app.innerHTML = `
+    <header class="top"><h1>Ders &amp; Antrenman</h1><span class="tag">Aile Takibi</span></header>
+    <div class="viewtabs">
+      <button class="${state.view==='day'?'active':''}" onclick="showDay()">Gün</button>
+      <button class="${state.view==='week'?'active':''}" onclick="showWeek()">Hafta Planı</button>
+    </div>
+    <div id="body"></div>
+  `;
+  const body = document.getElementById('body');
+  if(state.view==='week') body.innerHTML = renderWeekHtml();
+  else body.innerHTML = renderDayHtml();
+}
+
+function renderTrail(d){
+  const mon = mondayOf(d);
+  let html='';
+  for(let i=0;i<7;i++){
+    const wd = addDays(mon,i); const wkey = dkey(wd); const s = summaryFor(wkey);
+    const hasStudy = s && s.studyMinutes>0, hasSport = s && s.trainingDone, hasEvt = s && s.eventCount>0;
+    let cls='dot';
+    if(hasStudy && hasSport) cls+=' both'; else if(hasStudy) cls+=' study'; else if(hasSport) cls+=' sport';
+    const selCls = sameDay(wd,d) ? 'selected' : '';
+    const todayCls = sameDay(wd,new Date()) ? 'istoday' : '';
+    const evtCls = hasEvt ? 'evt' : '';
+    html += `<button class="trail-dot ${selCls} ${todayCls} ${evtCls}" onclick="goToDate(new Date(${wd.getFullYear()},${wd.getMonth()},${wd.getDate()}))">
+      <span class="wk">${WEEKDAYS[i]}</span><span class="${cls}"></span></button>`;
+  }
+  return html;
+}
+function weekStats(d){
+  const mon = mondayOf(d); let ws=0, wt=0, we=0;
+  for(let i=0;i<7;i++){ const s=summaryFor(dkey(addDays(mon,i))); if(s){ ws+=s.studyMinutes; if(s.trainingDone) wt++; we+=s.eventCount||0; } }
+  return {ws,wt,we};
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderDayHtml(){
+  const d = state.currentDate, key = dkey(d), data = getDay(key), isToday = sameDay(d,new Date());
+  const totalMinutes = data.studyEntries.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
+  const {ws,wt,we} = weekStats(d);
+
+  let entriesHtml = data.studyEntries.length===0
+    ? `<div class="empty-note">Bu gün için henüz ders kaydı yok.</div>`
+    : data.studyEntries.map(e=>`<div class="entry"><span class="swatch"></span><div class="info"><div class="subj">${escapeHtml(e.subject)}</div>${e.topic?`<div class="topic">${escapeHtml(e.topic)}</div>`:''}</div><span class="mins">${e.minutes} dk</span><button class="del" onclick="delEntry('${key}', ${JSON.stringify(e.id)})">×</button></div>`).join('');
+
+  const tr = data.training;
+  const sportDetail = tr.done ? `<div class="sport-detail">
+      <div class="row"><label>Süre</label><input name="sportmin" type="number" min="0" placeholder="dk" value="${tr.minutes||''}" onchange="updateTrainingField('${key}','minutes', this.value)"></div>
+      <div class="row"><label>Not</label><input name="sportnote" type="text" placeholder="ör. servis çalışması…" value="${escapeHtml(tr.note||'')}" onchange="updateTrainingField('${key}','note', this.value)"></div>
+    </div>` : '';
+
+  const events = data.events||[];
+  let eventsHtml = events.length===0
+    ? `<div class="empty-note">Bu gün için planlı etkinlik yok.</div>`
+    : events.map(e=>`<div class="entry"><span class="swatch evt"></span><div class="info"><div class="subj">${escapeHtml(e.title)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div>${e.time?`<span class="mins evt">${escapeHtml(e.time)}</span>`:''}<button class="del" onclick="delEvent('${key}', ${JSON.stringify(e.id)})">×</button></div>`).join('');
+
+  let historyHtml = '';
+  if(state.historyOpen){
+    const rows = [...state.index].sort((a,b)=> a.date<b.date?1:-1).slice(0,21);
+    historyHtml = rows.length===0 ? `<div class="card"><div class="empty-note">Henüz geçmiş kayıt yok.</div></div>` :
+      `<div class="card">` + rows.map(r=>{
+        const [y,m,dd] = r.date.split('-'); const disp = `${dd} ${MONTHS[parseInt(m)-1].slice(0,3)}`;
+        return `<div class="hist-row" onclick="goToDate(new Date(${y},${parseInt(m)-1},${parseInt(dd)}))">
+          <span class="d">${disp}</span><div class="badges">
+            ${r.studyMinutes>0?`<span class="badge study">${r.studyMinutes} dk ders</span>`:''}
+            ${r.trainingDone?`<span class="badge sport">antrenman</span>`:''}
+            ${r.eventCount>0?`<span class="badge event">${r.eventCount} etkinlik</span>`:''}
+          </div></div>`;
+      }).join('') + `</div>`;
+  }
+
+  return `
+    <div class="datenav">
+      <button onclick="goToDate(addDays(state.currentDate,-1))">‹</button>
+      <div class="label"><div class="day">${WEEKDAYS_FULL[(d.getDay()+6)%7]}</div><div class="sub">${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}${isToday?' · bugün':''}</div></div>
+      <button onclick="goToDate(addDays(state.currentDate,1))">›</button>
+    </div>
+    <div class="trail">${renderTrail(d)}</div>
+    <div class="stats">
+      <div class="stat"><div class="num">${ws}</div><div class="lbl">Hafta Dk Ders</div></div>
+      <div class="stat"><div class="num">${wt}</div><div class="lbl">Hafta Antrenman</div></div>
+      <div class="stat"><div class="num">${we}</div><div class="lbl">Hafta Etkinlik</div></div>
+    </div>
+    <div class="card">
+      <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${STUDY_ICON}<h2>Ne Çalıştım</h2></div>${totalMinutes>0?`<span class="total">${totalMinutes} dk toplam</span>`:''}</div>
+      ${entriesHtml}
+      <form class="addform" onsubmit="return handleAdd(event,'${key}')">
+        <input name="subject" list="subjects" placeholder="Ders" autocomplete="off">
+        <input name="topic" placeholder="Konu (opsiyonel)" autocomplete="off">
+        <input name="minutes" type="number" min="1" placeholder="dk">
+        <button type="submit">Ekle</button>
+      </form>
+      <datalist id="subjects"><option value="Matematik"><option value="Geometri"><option value="Fizik"><option value="Kimya"><option value="Biyoloji"><option value="Türkçe"><option value="Tarih"><option value="Coğrafya"><option value="Felsefe"><option value="İngilizce"></datalist>
+    </div>
+    <div class="card sport">
+      <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${SPORT_ICON}<h2>Antrenman</h2></div></div>
+      <div class="switch-row"><span class="switch-label">${tr.done?'Antrenmana gidildi':'Bugün antrenman yok'}</span>
+        <button class="switch ${tr.done?'on':''}" onclick="toggleTraining('${key}')"><span class="knob"></span></button></div>
+      ${sportDetail}
+    </div>
+    <div class="card">
+      <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${EVENT_ICON}<h2>Etkinlikler</h2></div></div>
+      ${eventsHtml}
+      <form class="addform event" onsubmit="return handleAddEvent(event,'${key}')">
+        <input name="title" placeholder="Etkinlik (ör. deneme sınavı)" autocomplete="off">
+        <input name="time" placeholder="Saat" autocomplete="off">
+        <input name="note" placeholder="Not (opsiyonel)" autocomplete="off">
+        <button type="submit">Ekle</button>
+      </form>
+    </div>
+    <button class="hist-toggle" onclick="toggleHistory()">${state.historyOpen?'▲ Geçmişi Gizle':'▼ Geçmişi Göster'}</button>
+    ${historyHtml}
+    <div class="backup-card">
+      <button class="backup-btn" onclick="exportBackupHtml()"><span class="bt">📥 HTML Yedek</span><span class="bs">okunabilir, açılabilir</span></button>
+      <button class="backup-btn" onclick="exportBackupJson()"><span class="bt">🗂 JSON Yedek</span><span class="bs">ham veri</span></button>
+    </div>
+    <div class="note">Bu sayfadaki veriler bu linke erişen herkes tarafından görülüp düzenlenebilir. "Hafta Planı" sekmesinden gelecek günler için önceden ders/antrenman/etkinlik girebilirsiniz — girdiğiniz gün geldiğinde orada durmaya devam eder. Düzenli aralıklarla "HTML Yedek" alıp telefonunuzda/bilgisayarınızda saklamanızı öneririm.</div>
+  `;
+}
+
+function renderWeekHtml(){
+  const anchor = state.currentDate, mon = mondayOf(anchor);
+  const {ws,wt,we} = weekStats(anchor);
+  const rangeLabel = `${mon.getDate()} ${MONTHS[mon.getMonth()].slice(0,3)} – ${addDays(mon,6).getDate()} ${MONTHS[addDays(mon,6).getMonth()].slice(0,3)}`;
+
+  let cards = '';
+  for(let i=0;i<7;i++){
+    const wd = addDays(mon,i), key = dkey(wd), data = getDay(key), isToday = sameDay(wd,new Date());
+    const studyChips = data.studyEntries.map(e=>`<span class="chip study">${escapeHtml(e.subject)} · ${e.minutes}dk <span class="x" onclick="delEntry('${key}',${JSON.stringify(e.id)})">×</span></span>`).join('');
+    const eventChips = (data.events||[]).map(e=>`<span class="chip event">${escapeHtml(e.title)}${e.time?' · '+escapeHtml(e.time):''} <span class="x" onclick="delEvent('${key}',${JSON.stringify(e.id)})">×</span></span>`).join('');
+    const tr = data.training;
+
+    cards += `
+      <div class="weekcard ${isToday?'today':''}">
+        <div class="weekcard-head">
+          <div class="wd">${WEEKDAYS_FULL[i]}<span class="datep">${wd.getDate()} ${MONTHS[wd.getMonth()].slice(0,3)}${isToday?' · bugün':''}</span></div>
+          <button class="goto" onclick="goToDate(new Date(${wd.getFullYear()},${wd.getMonth()},${wd.getDate()}))">Güne git →</button>
+        </div>
+        <div class="sectionlbl">Ders</div>
+        ${studyChips?`<div class="chiprow">${studyChips}</div>`:''}
+        <form class="quickrow" onsubmit="return weekAddStudy(event,'${key}')">
+          <input name="subject" list="subjects" placeholder="Ders" autocomplete="off">
+          <input name="minutes" type="number" min="1" placeholder="dk" class="small">
+          <button type="submit">+</button>
+        </form>
+        <div class="trainrow">
+          <span class="lbl">Antrenman</span>
+          <div class="right">
+            ${tr.done?`<input class="mininput" type="number" min="0" placeholder="dk" value="${tr.minutes||''}" onchange="updateTrainingField('${key}','minutes',this.value)">`:''}
+            <button class="switch small ${tr.done?'on':''}" onclick="toggleTraining('${key}')"><span class="knob"></span></button>
+          </div>
+        </div>
+        <div class="sectionlbl">Etkinlik</div>
+        ${eventChips?`<div class="chiprow">${eventChips}</div>`:''}
+        <form class="quickrow event" onsubmit="return weekAddEvent(event,'${key}')">
+          <input name="title" placeholder="Etkinlik" autocomplete="off">
+          <input name="time" placeholder="Saat" class="small">
+          <button type="submit">+</button>
+        </form>
+      </div>`;
+  }
+
+  return `
+    <div class="weeknav">
+      <button onclick="shiftWeek(-1)">‹ Önceki Hafta</button>
+      <span class="rng">${rangeLabel}</span>
+      <button onclick="shiftWeek(1)">Sonraki Hafta ›</button>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="num">${ws}</div><div class="lbl">Dk Ders</div></div>
+      <div class="stat"><div class="num">${wt}</div><div class="lbl">Antrenman</div></div>
+      <div class="stat"><div class="num">${we}</div><div class="lbl">Etkinlik</div></div>
+    </div>
+    ${cards}
+    <div class="backup-card">
+      <button class="backup-btn" onclick="exportBackupHtml()"><span class="bt">📥 HTML Yedek</span><span class="bs">okunabilir, açılabilir</span></button>
+      <button class="backup-btn" onclick="exportBackupJson()"><span class="bt">🗂 JSON Yedek</span><span class="bs">ham veri</span></button>
+    </div>
+    <div class="note">Bu görünümde önümüzdeki (veya geçmiş) günlere doğrudan ders, antrenman ve etkinlik girebilirsiniz. Girdiğiniz gün geldiğinde kayıtlar orada duruyor olacak — "Gün" sekmesinden o güne gidip detaylandırabilirsiniz.</div>
+    <datalist id="subjects"><option value="Matematik"><option value="Geometri"><option value="Fizik"><option value="Kimya"><option value="Biyoloji"><option value="Türkçe"><option value="Tarih"><option value="Coğrafya"><option value="Felsefe"><option value="İngilizce"></datalist>
+  `;
+}
+
+function handleAdd(ev,key){
+  ev.preventDefault(); const f=ev.target;
+  const subject=f.subject.value.trim(), topic=f.topic.value.trim(), minutes=f.minutes.value;
+  if(subject && minutes){ addEntry(key,subject,topic,minutes); f.reset(); }
+  return false;
+}
+function handleAddEvent(ev,key){
+  ev.preventDefault(); const f=ev.target;
+  const title=f.title.value.trim(), time=f.time.value.trim(), note=f.note.value.trim();
+  if(title){ addEvent(key,title,time,note); f.reset(); }
+  return false;
+}
+function weekAddStudy(ev,key){
+  ev.preventDefault(); const f=ev.target;
+  const subject=f.subject.value.trim(), minutes=f.minutes.value;
+  if(subject && minutes){ addEntry(key,subject,'',minutes); f.reset(); }
+  return false;
+}
+function weekAddEvent(ev,key){
+  ev.preventDefault(); const f=ev.target;
+  const title=f.title.value.trim(), time=f.time.value.trim();
+  if(title){ addEvent(key,title,time,''); f.reset(); }
+  return false;
+}
+function toggleHistory(){ state.historyOpen = !state.historyOpen; render(); }
+
+// ---- backup / export ----
+function showToast(msg){
+  let t = document.getElementById('toast');
+  if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(()=>t.classList.remove('show'), 2500);
+}
+function downloadFile(content, filename, mime){
+  const blob = new Blob([content], {type: mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+}
+function todayStamp(){ const d=new Date(); return dkey(d); }
+
+async function collectAllDays(){
+  const keys = [...new Set(state.index.map(e=>e.date))].sort(); // ascending
+  await Promise.all(keys.map(ensureDay));
+  return keys.map(k => ({ key:k, data: getDay(k) }));
+}
+
+async function exportBackupJson(){
+  const days = await collectAllDays();
+  const payload = { exportedAt: new Date().toISOString(), days: days.map(d=>({date:d.key, ...d.data})) };
+  downloadFile(JSON.stringify(payload, null, 2), `ders-antrenman-yedek-${todayStamp()}.json`, 'application/json');
+  showToast('JSON yedek indirildi');
+}
+
+async function exportBackupHtml(){
+  const days = await collectAllDays();
+  const now = new Date();
+  const stamp = `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}, ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  let totalStudy=0, totalTrain=0, totalEvt=0;
+  const rows = days.map(({key,data})=>{
+    const [y,m,dd] = key.split('-');
+    const wd = new Date(parseInt(y),parseInt(m)-1,parseInt(dd));
+    const dayLabel = `${WEEKDAYS_FULL[(wd.getDay()+6)%7]}, ${parseInt(dd)} ${MONTHS[parseInt(m)-1]} ${y}`;
+    const studyMin = data.studyEntries.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
+    totalStudy += studyMin; if(data.training.done) totalTrain++; totalEvt += (data.events||[]).length;
+
+    const studyRows = data.studyEntries.length
+      ? data.studyEntries.map(e=>`<tr><td>${escapeHtml(e.subject)}</td><td>${escapeHtml(e.topic||'—')}</td><td>${e.minutes} dk</td></tr>`).join('')
+      : `<tr><td colspan="3" class="muted">Ders kaydı yok</td></tr>`;
+
+    const trainInfo = data.training.done
+      ? `<p class="chip-line"><span class="b b-sport">Antrenman yapıldı</span> ${data.training.minutes?`· ${escapeHtml(String(data.training.minutes))} dk`:''} ${data.training.note?`· ${escapeHtml(data.training.note)}`:''}</p>`
+      : `<p class="chip-line muted">Antrenman yok</p>`;
+
+    const evts = (data.events||[]);
+    const evtHtml = evts.length
+      ? `<ul class="evtlist">` + evts.map(e=>`<li><b>${escapeHtml(e.title)}</b>${e.time?` — ${escapeHtml(e.time)}`:''}${e.note?` <span class="muted">(${escapeHtml(e.note)})</span>`:''}</li>`).join('') + `</ul>`
+      : '';
+
+    return `
+      <section class="day">
+        <h2>${dayLabel} <span class="muted small">(${key})</span></h2>
+        <table>
+          <thead><tr><th>Ders</th><th>Konu</th><th>Süre</th></tr></thead>
+          <tbody>${studyRows}</tbody>
+        </table>
+        ${trainInfo}
+        ${evtHtml}
+      </section>`;
+  }).join('\n');
+
+  const html = `<!DOCTYPE html>
+<html lang="tr"><head><meta charset="UTF-8"><title>Ders & Antrenman Yedek — ${stamp}</title>
+<style>
+  body{font-family:Georgia,'Times New Roman',serif;max-width:760px;margin:40px auto;padding:0 20px;color:#1C2B29;line-height:1.5;}
+  h1{font-size:26px;margin-bottom:4px;}
+  .meta{color:#5B6B67;font-size:13px;margin-bottom:24px;font-family:Arial,sans-serif;}
+  .summary{display:flex;gap:16px;margin-bottom:28px;font-family:Arial,sans-serif;}
+  .summary div{background:#F3F6F4;border-radius:10px;padding:10px 16px;font-size:13px;}
+  .summary b{font-size:18px;display:block;}
+  section.day{border-top:1px solid #D9E2DD;padding:18px 0;}
+  section.day h2{font-size:16px;margin:0 0 10px;font-family:Arial,sans-serif;}
+  table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px;margin-bottom:8px;}
+  th,td{text-align:left;padding:5px 8px;border-bottom:1px solid #EEF1EF;}
+  th{color:#5B6B67;font-weight:600;font-size:11px;text-transform:uppercase;}
+  .chip-line{font-family:Arial,sans-serif;font-size:13px;margin:6px 0;}
+  .b{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
+  .b-sport{background:#FBEED2;color:#8A5A15;}
+  .evtlist{font-family:Arial,sans-serif;font-size:13px;margin:6px 0 0;padding-left:18px;}
+  .muted{color:#8a938f;}
+  .small{font-size:11px;font-weight:normal;}
+  @media print{ body{margin:10px auto;} }
+</style></head>
+<body>
+  <h1>Ders &amp; Antrenman Yedek</h1>
+  <div class="meta">Bu yedek ${stamp} tarihinde indirildi · toplam ${days.length} gün kaydı içerir.</div>
+  <div class="summary">
+    <div><b>${totalStudy}</b>toplam dk ders</div>
+    <div><b>${totalTrain}</b>antrenman günü</div>
+    <div><b>${totalEvt}</b>etkinlik</div>
+  </div>
+  ${rows || '<p class="muted">Henüz kayıt yok.</p>'}
+</body></html>`;
+
+  downloadFile(html, `ders-antrenman-yedek-${todayStamp()}.html`, 'text/html');
+  showToast('HTML yedek indirildi');
+}
+
+window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
