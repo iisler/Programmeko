@@ -6,7 +6,11 @@
 <title>Ders & Antrenman Takip</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-<const> firebaseConfig = {
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
   apiKey: "AIzaSyBUpqa9rI8Ht6kX7OEGGI_LdisyFjqnxZo",
   authDomain: "elaidaprogramme.firebaseapp.com",
   databaseURL: "https://elaidaprogramme-default-rtdb.europe-west1.firebasedatabase.app",
@@ -15,16 +19,6 @@
   messagingSenderId: "203937367136",
   appId: "1:203937367136:web:ed175344bc2176ced42f05"
 };
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script>
-  const firebaseConfig = {
-    apiKey: "BURAYA_API_KEY",
-    authDomain: "BURAYA_PROJE.firebaseapp.com",
-    databaseURL: "https://BURAYA_PROJE-default-rtdb.firebaseio.com",
-    projectId: "BURAYA_PROJE",
-  };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 </script>
