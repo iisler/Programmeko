@@ -6,11 +6,13 @@
 <title>Ders & Antrenman Takip</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Firebase (ücretsiz Realtime Database) - verinin gerçekten kaydedildiği yer.
+     Aşağıdaki firebaseConfig değerlerini kendi Firebase projenizden alıp buraya yapıştırın. -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
-  const firebaseConfig = {
+ const firebaseConfig = {
   apiKey: "AIzaSyBUpqa9rI8Ht6kX7OEGGI_LdisyFjqnxZo",
   authDomain: "elaidaprogramme.firebaseapp.com",
   databaseURL: "https://elaidaprogramme-default-rtdb.europe-west1.firebasedatabase.app",
@@ -95,6 +97,14 @@
   .addform.event button{background:var(--event);}
   .addform button:active{transform:scale(0.98);}
 
+  .manage-toggle{background:none;border:none;color:var(--ink-soft);font-size:11px;font-family:'IBM Plex Mono',monospace;cursor:pointer;text-decoration:underline;padding:0;}
+  .subject-panel{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);}
+  .subject-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 6px 4px 10px;border-radius:20px;background:var(--study-soft);color:var(--study);margin:0 6px 6px 0;}
+  .subject-chip .x{cursor:pointer;font-weight:700;background:none;border:none;color:var(--study);font-size:13px;line-height:1;padding:2px;}
+  .subject-addrow{display:flex;gap:8px;margin-top:6px;}
+  .subject-addrow input{flex:1;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;font-family:'IBM Plex Sans',sans-serif;}
+  .subject-addrow button{background:var(--study);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+
   .card.sport{border-color:var(--sport-soft);}
   .switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
   .switch-label{font-size:14px;font-weight:500;}
@@ -152,6 +162,10 @@
   .chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
   .chip{display:flex;align-items:center;gap:5px;font-size:11px;padding:4px 9px;border-radius:20px;font-family:'IBM Plex Mono',monospace;}
   .chip.study{background:var(--study-soft);color:var(--study);}
+  .chip.sport{background:var(--sport-soft);color:var(--sport-deep);}
+  .quickrow select{border:1px solid var(--line);border-radius:8px;padding:6px 6px;font-size:12px;font-family:'IBM Plex Sans',sans-serif;background:#fff;flex:1;min-width:0;}
+  .quickrow.sport select{flex:0 0 78px;}
+  .quickrow.sport button{background:var(--sport);}
   .chip.event{background:var(--event-soft);color:var(--event);}
   .chip .x{cursor:pointer;font-weight:700;margin-left:2px;}
   .quickrow{display:flex;gap:6px;margin-bottom:8px;}
@@ -181,9 +195,38 @@ function dkey(d){ const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'
 function mondayOf(d){ const nd=new Date(d); const dow=(nd.getDay()+6)%7; nd.setDate(nd.getDate()-dow); nd.setHours(0,0,0,0); return nd; }
 function addDays(d,n){ const nd=new Date(d); nd.setDate(nd.getDate()+n); return nd; }
 function sameDay(a,b){ return dkey(a)===dkey(b); }
-function emptyDay(){ return { studyEntries:[], training:{done:false,minutes:'',note:''}, events:[] }; }
+function emptyDay(){ return { studyEntries:[], training:[], events:[] }; }
+function migrateTraining(raw){
+  if(Array.isArray(raw)) return raw;
+  if(raw && typeof raw==='object' && raw.done){ return [{id:'legacy-'+Math.random(), type:'Antrenman', minutes:raw.minutes||'', note:raw.note||''}]; }
+  return [];
+}
 
-let state = { currentDate: new Date(), days:{}, index:[], view:'day', historyOpen:false };
+let state = { currentDate: new Date(), days:{}, index:[], view:'day', historyOpen:false, subjects:[], subjectsOpen:false };
+
+const DEFAULT_SUBJECTS = ['Matematik','Geometri','Fizik','Kimya','Biyoloji','Türkçe','Tarih','Coğrafya','Felsefe','İngilizce'];
+
+async function loadSubjects(){
+  const snap = await db.ref('subjects').get();
+  if(snap.exists()) return snap.val();
+  await db.ref('subjects').set(DEFAULT_SUBJECTS);
+  return DEFAULT_SUBJECTS;
+}
+async function saveSubjects(list){
+  state.subjects = list;
+  try{ await db.ref('subjects').set(list); }catch(e){ console.error('subjects save failed', e); }
+}
+async function addSubject(name){
+  name = (name||'').trim();
+  if(!name || state.subjects.includes(name)) return;
+  await saveSubjects([...state.subjects, name]);
+  render();
+}
+async function deleteSubject(name){
+  await saveSubjects(state.subjects.filter(s=>s!==name));
+  render();
+}
+function toggleSubjectsPanel(){ state.subjectsOpen = !state.subjectsOpen; render(); }
 
 async function loadIndex(){
   const snap = await db.ref('daysIndex').get();
@@ -197,7 +240,7 @@ async function loadDay(key){
   const snap = await db.ref('days/'+key).get();
   if(snap.exists()){
     const p = snap.val();
-    return { studyEntries: p.studyEntries||[], training: p.training||{done:false,minutes:'',note:''}, events: p.events||[] };
+    return { studyEntries: p.studyEntries||[], training: migrateTraining(p.training), events: p.events||[] };
   }
   return emptyDay();
 }
@@ -209,7 +252,8 @@ async function ensureDay(key){
 }
 function computeSummary(key,data){
   const studyMinutes = data.studyEntries.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
-  return { date:key, studyMinutes, entryCount:data.studyEntries.length, trainingDone: !!data.training.done, trainingMinutes: parseInt(data.training.minutes)||0, eventCount: (data.events||[]).length };
+  const trainingMinutes = data.training.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
+  return { date:key, studyMinutes, entryCount:data.studyEntries.length, trainingDone: data.training.length>0, trainingCount: data.training.length, trainingMinutes, eventCount: (data.events||[]).length };
 }
 async function persist(key){
   const data = state.days[key];
@@ -252,15 +296,16 @@ async function delEntry(key,id){
   data.studyEntries = data.studyEntries.filter(e=>e.id!==id);
   await persist(key); render();
 }
-async function toggleTraining(key){
+async function addTraining(key, type, minutes, note){
+  if(!type || !minutes) return;
   const data = await ensureDay(key);
-  data.training.done = !data.training.done;
+  data.training.push({id:Date.now()+Math.random(), type, minutes, note: note||''});
   await persist(key); render();
 }
-async function updateTrainingField(key, field, value){
+async function delTraining(key,id){
   const data = await ensureDay(key);
-  data.training[field] = value;
-  await persist(key);
+  data.training = data.training.filter(e=>e.id!==id);
+  await persist(key); render();
 }
 async function addEvent(key,title,time,note){
   if(!title) return;
@@ -285,6 +330,7 @@ async function init(){
   }
   try{
     state.index = await loadIndex();
+    state.subjects = await loadSubjects();
     await ensureDay(dkey(state.currentDate));
     render();
   }catch(e){
@@ -341,11 +387,10 @@ function renderDayHtml(){
     ? `<div class="empty-note">Bu gün için henüz ders kaydı yok.</div>`
     : data.studyEntries.map(e=>`<div class="entry"><span class="swatch"></span><div class="info"><div class="subj">${escapeHtml(e.subject)}</div>${e.topic?`<div class="topic">${escapeHtml(e.topic)}</div>`:''}</div><span class="mins">${e.minutes} dk</span><button class="del" onclick="delEntry('${key}', ${JSON.stringify(e.id)})">×</button></div>`).join('');
 
-  const tr = data.training;
-  const sportDetail = tr.done ? `<div class="sport-detail">
-      <div class="row"><label>Süre</label><input name="sportmin" type="number" min="0" placeholder="dk" value="${tr.minutes||''}" onchange="updateTrainingField('${key}','minutes', this.value)"></div>
-      <div class="row"><label>Not</label><input name="sportnote" type="text" placeholder="ör. servis çalışması…" value="${escapeHtml(tr.note||'')}" onchange="updateTrainingField('${key}','note', this.value)"></div>
-    </div>` : '';
+  const trainingMinutes = data.training.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
+  let trainingHtml = data.training.length===0
+    ? `<div class="empty-note">Bu gün için henüz antrenman kaydı yok.</div>`
+    : data.training.map(e=>`<div class="entry"><span class="swatch" style="background:var(--sport)"></span><div class="info"><div class="subj">${escapeHtml(e.type)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div><span class="mins" style="color:var(--sport-deep);background:var(--sport-soft)">${e.minutes} dk</span><button class="del" onclick="delTraining('${key}', ${JSON.stringify(e.id)})">×</button></div>`).join('');
 
   const events = data.events||[];
   let eventsHtml = events.length===0
@@ -380,21 +425,39 @@ function renderDayHtml(){
       <div class="stat"><div class="num">${we}</div><div class="lbl">Hafta Etkinlik</div></div>
     </div>
     <div class="card">
-      <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${STUDY_ICON}<h2>Ne Çalıştım</h2></div>${totalMinutes>0?`<span class="total">${totalMinutes} dk toplam</span>`:''}</div>
+      <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${STUDY_ICON}<h2>Çalışma Planı</h2></div>${totalMinutes>0?`<span class="total">${totalMinutes} dk toplam</span>`:''}</div>
       ${entriesHtml}
       <form class="addform" onsubmit="return handleAdd(event,'${key}')">
-        <input name="subject" list="subjects" placeholder="Ders" autocomplete="off">
+        <select name="subject" style="flex:1 1 120px;font-family:'IBM Plex Sans', sans-serif;border:1px solid var(--line);border-radius:9px;padding:9px 10px;font-size:13px;background:#fff;">
+          ${state.subjects.length===0?`<option value="">Önce ders ekleyin</option>`:state.subjects.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('')}
+        </select>
         <input name="topic" placeholder="Konu (opsiyonel)" autocomplete="off">
         <input name="minutes" type="number" min="1" placeholder="dk">
         <button type="submit">Ekle</button>
       </form>
-      <datalist id="subjects"><option value="Matematik"><option value="Geometri"><option value="Fizik"><option value="Kimya"><option value="Biyoloji"><option value="Türkçe"><option value="Tarih"><option value="Coğrafya"><option value="Felsefe"><option value="İngilizce"></datalist>
+      <button class="manage-toggle" onclick="toggleSubjectsPanel()">${state.subjectsOpen?'▲ Ders listesini kapat':'✎ Dersleri düzenle (ekle/sil)'}</button>
+      ${state.subjectsOpen?`
+        <div class="subject-panel">
+          ${state.subjects.map(s=>`<span class="subject-chip">${escapeHtml(s)}<button class="x" onclick="deleteSubject(${JSON.stringify(s)})">×</button></span>`).join('') || `<div class="empty-note">Henüz ders eklenmemiş.</div>`}
+          <form class="subject-addrow" onsubmit="return handleAddSubject(event)">
+            <input name="newsubject" placeholder="Yeni ders adı (ör. Almanca)" autocomplete="off">
+            <button type="submit">Ekle</button>
+          </form>
+        </div>
+      `:''}
     </div>
     <div class="card sport">
-      <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${SPORT_ICON}<h2>Antrenman</h2></div></div>
-      <div class="switch-row"><span class="switch-label">${tr.done?'Antrenmana gidildi':'Bugün antrenman yok'}</span>
-        <button class="switch ${tr.done?'on':''}" onclick="toggleTraining('${key}')"><span class="knob"></span></button></div>
-      ${sportDetail}
+      <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${SPORT_ICON}<h2>Antrenman</h2></div>${trainingMinutes>0?`<span class="total">${trainingMinutes} dk toplam</span>`:''}</div>
+      ${trainingHtml}
+      <form class="addform" onsubmit="return handleAddTraining(event,'${key}')">
+        <select name="type" style="flex:1 1 100px;font-family:'IBM Plex Sans', sans-serif;border:1px solid var(--line);border-radius:9px;padding:9px 10px;font-size:13px;background:#fff;">
+          <option value="Top">Top</option>
+          <option value="Kuvvet">Kuvvet</option>
+        </select>
+        <input name="minutes" type="number" min="1" placeholder="dk">
+        <input name="note" placeholder="Not (opsiyonel)" autocomplete="off">
+        <button type="submit">Ekle</button>
+      </form>
     </div>
     <div class="card">
       <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${EVENT_ICON}<h2>Etkinlikler</h2></div></div>
@@ -426,7 +489,7 @@ function renderWeekHtml(){
     const wd = addDays(mon,i), key = dkey(wd), data = getDay(key), isToday = sameDay(wd,new Date());
     const studyChips = data.studyEntries.map(e=>`<span class="chip study">${escapeHtml(e.subject)} · ${e.minutes}dk <span class="x" onclick="delEntry('${key}',${JSON.stringify(e.id)})">×</span></span>`).join('');
     const eventChips = (data.events||[]).map(e=>`<span class="chip event">${escapeHtml(e.title)}${e.time?' · '+escapeHtml(e.time):''} <span class="x" onclick="delEvent('${key}',${JSON.stringify(e.id)})">×</span></span>`).join('');
-    const tr = data.training;
+    const trainingChips = data.training.map(e=>`<span class="chip sport">${escapeHtml(e.type)} · ${e.minutes}dk <span class="x" onclick="delTraining('${key}',${JSON.stringify(e.id)})">×</span></span>`).join('');
 
     cards += `
       <div class="weekcard ${isToday?'today':''}">
@@ -437,17 +500,17 @@ function renderWeekHtml(){
         <div class="sectionlbl">Ders</div>
         ${studyChips?`<div class="chiprow">${studyChips}</div>`:''}
         <form class="quickrow" onsubmit="return weekAddStudy(event,'${key}')">
-          <input name="subject" list="subjects" placeholder="Ders" autocomplete="off">
+          <select name="subject">${state.subjects.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('')}</select>
           <input name="minutes" type="number" min="1" placeholder="dk" class="small">
           <button type="submit">+</button>
         </form>
-        <div class="trainrow">
-          <span class="lbl">Antrenman</span>
-          <div class="right">
-            ${tr.done?`<input class="mininput" type="number" min="0" placeholder="dk" value="${tr.minutes||''}" onchange="updateTrainingField('${key}','minutes',this.value)">`:''}
-            <button class="switch small ${tr.done?'on':''}" onclick="toggleTraining('${key}')"><span class="knob"></span></button>
-          </div>
-        </div>
+        <div class="sectionlbl">Antrenman</div>
+        ${trainingChips?`<div class="chiprow">${trainingChips}</div>`:''}
+        <form class="quickrow sport" onsubmit="return weekAddTraining(event,'${key}')">
+          <select name="type"><option value="Top">Top</option><option value="Kuvvet">Kuvvet</option></select>
+          <input name="minutes" type="number" min="1" placeholder="dk" class="small">
+          <button type="submit">+</button>
+        </form>
         <div class="sectionlbl">Etkinlik</div>
         ${eventChips?`<div class="chiprow">${eventChips}</div>`:''}
         <form class="quickrow event" onsubmit="return weekAddEvent(event,'${key}')">
@@ -475,7 +538,6 @@ function renderWeekHtml(){
       <button class="backup-btn" onclick="exportBackupJson()"><span class="bt">🗂 JSON Yedek</span><span class="bs">ham veri</span></button>
     </div>
     <div class="note">Bu görünümde önümüzdeki (veya geçmiş) günlere doğrudan ders, antrenman ve etkinlik girebilirsiniz. Girdiğiniz gün geldiğinde kayıtlar orada duruyor olacak — "Gün" sekmesinden o güne gidip detaylandırabilirsiniz.</div>
-    <datalist id="subjects"><option value="Matematik"><option value="Geometri"><option value="Fizik"><option value="Kimya"><option value="Biyoloji"><option value="Türkçe"><option value="Tarih"><option value="Coğrafya"><option value="Felsefe"><option value="İngilizce"></datalist>
   `;
 }
 
@@ -485,10 +547,22 @@ function handleAdd(ev,key){
   if(subject && minutes){ addEntry(key,subject,topic,minutes); f.reset(); }
   return false;
 }
+function handleAddSubject(ev){
+  ev.preventDefault(); const f=ev.target;
+  const name = f.newsubject.value.trim();
+  if(name){ addSubject(name); f.reset(); }
+  return false;
+}
 function handleAddEvent(ev,key){
   ev.preventDefault(); const f=ev.target;
   const title=f.title.value.trim(), time=f.time.value.trim(), note=f.note.value.trim();
   if(title){ addEvent(key,title,time,note); f.reset(); }
+  return false;
+}
+function handleAddTraining(ev,key){
+  ev.preventDefault(); const f=ev.target;
+  const type=f.type.value, minutes=f.minutes.value, note=f.note.value.trim();
+  if(type && minutes){ addTraining(key,type,minutes,note); f.reset(); }
   return false;
 }
 function weekAddStudy(ev,key){
@@ -501,6 +575,12 @@ function weekAddEvent(ev,key){
   ev.preventDefault(); const f=ev.target;
   const title=f.title.value.trim(), time=f.time.value.trim();
   if(title){ addEvent(key,title,time,''); f.reset(); }
+  return false;
+}
+function weekAddTraining(ev,key){
+  ev.preventDefault(); const f=ev.target;
+  const type=f.type.value, minutes=f.minutes.value;
+  if(type && minutes){ addTraining(key,type,minutes,''); f.reset(); }
   return false;
 }
 function toggleHistory(){ state.historyOpen = !state.historyOpen; render(); }
@@ -548,14 +628,14 @@ async function exportBackupHtml(){
     const wd = new Date(parseInt(y),parseInt(m)-1,parseInt(dd));
     const dayLabel = `${WEEKDAYS_FULL[(wd.getDay()+6)%7]}, ${parseInt(dd)} ${MONTHS[parseInt(m)-1]} ${y}`;
     const studyMin = data.studyEntries.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
-    totalStudy += studyMin; if(data.training.done) totalTrain++; totalEvt += (data.events||[]).length;
+    totalStudy += studyMin; if(data.training.length>0) totalTrain++; totalEvt += (data.events||[]).length;
 
     const studyRows = data.studyEntries.length
       ? data.studyEntries.map(e=>`<tr><td>${escapeHtml(e.subject)}</td><td>${escapeHtml(e.topic||'—')}</td><td>${e.minutes} dk</td></tr>`).join('')
       : `<tr><td colspan="3" class="muted">Ders kaydı yok</td></tr>`;
 
-    const trainInfo = data.training.done
-      ? `<p class="chip-line"><span class="b b-sport">Antrenman yapıldı</span> ${data.training.minutes?`· ${escapeHtml(String(data.training.minutes))} dk`:''} ${data.training.note?`· ${escapeHtml(data.training.note)}`:''}</p>`
+    const trainInfo = data.training.length>0
+      ? data.training.map(e=>`<p class="chip-line"><span class="b b-sport">${escapeHtml(e.type)}</span> · ${escapeHtml(String(e.minutes))} dk ${e.note?`· ${escapeHtml(e.note)}`:''}</p>`).join('')
       : `<p class="chip-line muted">Antrenman yok</p>`;
 
     const evts = (data.events||[]);
