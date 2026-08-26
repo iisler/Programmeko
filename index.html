@@ -12,7 +12,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
-  const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "AIzaSyBUpqa9rI8Ht6kX7OEGGI_LdisyFjqnxZo",
   authDomain: "elaidaprogramme.firebaseapp.com",
   databaseURL: "https://elaidaprogramme-default-rtdb.europe-west1.firebasedatabase.app",
@@ -20,7 +20,7 @@
   storageBucket: "elaidaprogramme.firebasestorage.app",
   messagingSenderId: "203937367136",
   appId: "1:203937367136:web:ed175344bc2176ced42f05"
-};
+  };
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 </script>
@@ -79,6 +79,14 @@
   .entry{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
   .entry:last-child{border-bottom:none;}
   .entry .swatch{width:8px;height:8px;border-radius:50%;background:var(--study);flex-shrink:0;}
+  .status-badge{border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.02em;padding:5px 8px;border-radius:20px;flex-shrink:0;white-space:nowrap;}
+  .status-badge.status-todo{background:var(--line);color:var(--ink-soft);}
+  .status-badge.status-inprogress{background:var(--sport-soft);color:var(--sport-deep);}
+  .status-badge.status-done{background:var(--study-soft);color:var(--study);}
+  .chip.study.status-todo{background:var(--line);color:var(--ink-soft);}
+  .chip.study.status-inprogress{background:var(--sport-soft);color:var(--sport-deep);}
+  .chip.study.status-done{background:var(--study-soft);color:var(--study);}
+  .chip .clicktext{cursor:pointer;}
   .entry .swatch.evt{background:var(--event);}
   .entry .info{flex:1;min-width:0;}
   .entry .info .subj{font-weight:600;font-size:14px;}
@@ -240,7 +248,7 @@ async function loadDay(key){
   const snap = await db.ref('days/'+key).get();
   if(snap.exists()){
     const p = snap.val();
-    return { studyEntries: p.studyEntries||[], training: migrateTraining(p.training), events: p.events||[] };
+    return { studyEntries: (p.studyEntries||[]).map(e=>({...e, status: e.status || 'done'})), training: migrateTraining(p.training), events: p.events||[] };
   }
   return emptyDay();
 }
@@ -288,12 +296,22 @@ async function shiftWeek(delta){ state.currentDate = addDays(state.currentDate, 
 async function addEntry(key, subject, topic, minutes){
   if(!subject || !minutes) return;
   const data = await ensureDay(key);
-  data.studyEntries.push({id:Date.now()+Math.random(), subject, topic, minutes});
+  data.studyEntries.push({id:Date.now()+Math.random(), subject, topic, minutes, status:'todo'});
   await persist(key); render();
 }
 async function delEntry(key,id){
   const data = await ensureDay(key);
   data.studyEntries = data.studyEntries.filter(e=>e.id!==id);
+  await persist(key); render();
+}
+const STATUS_ORDER = ['todo','inprogress','done'];
+const STATUS_SHORT = {todo:'Yapılacak', inprogress:'Devam Ediyor', done:'Tamamlandı'};
+async function cycleStatus(key,id){
+  const data = await ensureDay(key);
+  const e = data.studyEntries.find(x=>x.id===id);
+  if(!e) return;
+  const idx = STATUS_ORDER.indexOf(e.status||'todo');
+  e.status = STATUS_ORDER[(idx+1)%STATUS_ORDER.length];
   await persist(key); render();
 }
 async function addTraining(key, type, minutes, note){
@@ -343,7 +361,7 @@ async function init(){
 function render(){
   const app = document.getElementById('app');
   app.innerHTML = `
-    <header class="top"><h1>!PlanMeee!</h1><span class="tag">Ela Ada İşler</span></header>
+    <header class="top"><h1>Ders &amp; Antrenman</h1><span class="tag">Aile Takibi</span></header>
     <div class="viewtabs">
       <button class="${state.view==='day'?'active':''}" onclick="showDay()">Gün</button>
       <button class="${state.view==='week'?'active':''}" onclick="showWeek()">Hafta Planı</button>
@@ -392,7 +410,10 @@ function renderDayHtml(){
 
   let entriesHtml = data.studyEntries.length===0
     ? `<div class="empty-note">Bu gün için henüz ders kaydı yok.</div>`
-    : data.studyEntries.map(e=>`<div class="entry"><span class="swatch"></span><div class="info"><div class="subj">${escapeHtml(e.subject)}</div>${e.topic?`<div class="topic">${escapeHtml(e.topic)}</div>`:''}</div><span class="mins">${e.minutes} dk</span><button class="del" onclick="delEntry('${key}', ${JSON.stringify(e.id)})">×</button></div>`).join('');
+    : data.studyEntries.map(e=>{
+        const st = e.status||'todo';
+        return `<div class="entry"><button class="status-badge status-${st}" onclick="cycleStatus('${key}', ${JSON.stringify(e.id)})">${STATUS_SHORT[st]}</button><div class="info"><div class="subj" style="${st==='done'?'text-decoration:line-through;opacity:.6;':''}">${escapeHtml(e.subject)}</div>${e.topic?`<div class="topic">${escapeHtml(e.topic)}</div>`:''}</div><span class="mins">${e.minutes} dk</span><button class="del" onclick="delEntry('${key}', ${JSON.stringify(e.id)})">×</button></div>`;
+      }).join('');
 
   const trainingMinutes = data.training.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
   let trainingHtml = data.training.length===0
@@ -433,6 +454,7 @@ function renderDayHtml(){
     </div>
     <div class="card">
       <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${STUDY_ICON}<h2>Çalışma Planı</h2></div>${totalMinutes>0?`<span class="total">${totalMinutes} dk toplam</span>`:''}</div>
+      <div style="font-size:11px;color:var(--ink-soft);margin-bottom:8px;">Rozete dokunarak durumu değiştirin: Yapılacak → Devam Ediyor → Tamamlandı</div>
       ${entriesHtml}
       <form class="addform" onsubmit="return handleAdd(event,'${key}')">
         <select name="subject" style="flex:1 1 120px;font-family:'IBM Plex Sans', sans-serif;border:1px solid var(--line);border-radius:9px;padding:9px 10px;font-size:13px;background:#fff;">
@@ -494,7 +516,10 @@ function renderWeekHtml(){
   let cards = '';
   for(let i=0;i<7;i++){
     const wd = addDays(mon,i), key = dkey(wd), data = getDay(key), isToday = sameDay(wd,new Date());
-    const studyChips = data.studyEntries.map(e=>`<span class="chip study">${escapeHtml(e.subject)} · ${e.minutes}dk <span class="x" onclick="delEntry('${key}',${JSON.stringify(e.id)})">×</span></span>`).join('');
+    const studyChips = data.studyEntries.map(e=>{
+      const st = e.status||'todo';
+      return `<span class="chip study status-${st}"><span class="clicktext" onclick="cycleStatus('${key}',${JSON.stringify(e.id)})" style="${st==='done'?'text-decoration:line-through;':''}">${escapeHtml(e.subject)} · ${e.minutes}dk</span> <span class="x" onclick="delEntry('${key}',${JSON.stringify(e.id)})">×</span></span>`;
+    }).join('');
     const eventChips = (data.events||[]).map(e=>`<span class="chip event">${escapeHtml(e.title)}${e.time?' · '+escapeHtml(e.time):''} <span class="x" onclick="delEvent('${key}',${JSON.stringify(e.id)})">×</span></span>`).join('');
     const trainingChips = data.training.map(e=>`<span class="chip sport">${escapeHtml(e.type)} · ${formatDuration(e.minutes)} <span class="x" onclick="delTraining('${key}',${JSON.stringify(e.id)})">×</span></span>`).join('');
 
@@ -638,8 +663,8 @@ async function exportBackupHtml(){
     totalStudy += studyMin; if(data.training.length>0) totalTrain++; totalEvt += (data.events||[]).length;
 
     const studyRows = data.studyEntries.length
-      ? data.studyEntries.map(e=>`<tr><td>${escapeHtml(e.subject)}</td><td>${escapeHtml(e.topic||'—')}</td><td>${e.minutes} dk</td></tr>`).join('')
-      : `<tr><td colspan="3" class="muted">Ders kaydı yok</td></tr>`;
+      ? data.studyEntries.map(e=>`<tr><td>${escapeHtml(e.subject)}</td><td>${escapeHtml(e.topic||'—')}</td><td>${e.minutes} dk</td><td>${STATUS_SHORT[e.status||'todo']}</td></tr>`).join('')
+      : `<tr><td colspan="4" class="muted">Ders kaydı yok</td></tr>`;
 
     const trainInfo = data.training.length>0
       ? data.training.map(e=>`<p class="chip-line"><span class="b b-sport">${escapeHtml(e.type)}</span> · ${formatDuration(e.minutes)} ${e.note?`· ${escapeHtml(e.note)}`:''}</p>`).join('')
@@ -654,7 +679,7 @@ async function exportBackupHtml(){
       <section class="day">
         <h2>${dayLabel} <span class="muted small">(${key})</span></h2>
         <table>
-          <thead><tr><th>Ders</th><th>Konu</th><th>Süre</th></tr></thead>
+          <thead><tr><th>Ders</th><th>Konu</th><th>Süre</th><th>Durum</th></tr></thead>
           <tbody>${studyRows}</tbody>
         </table>
         ${trainInfo}
