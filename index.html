@@ -12,8 +12,8 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyBUpqa9rI8Ht6kX7OEGGI_LdisyFjqnxZo",
+  const firebaseConfig = {
+   apiKey: "AIzaSyBUpqa9rI8Ht6kX7OEGGI_LdisyFjqnxZo",
   authDomain: "elaidaprogramme.firebaseapp.com",
   databaseURL: "https://elaidaprogramme-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "elaidaprogramme",
@@ -94,6 +94,14 @@ const firebaseConfig = {
   .entry .mins{font-family:'IBM Plex Mono', monospace;font-size:12px;color:var(--study);background:var(--study-soft);padding:3px 8px;border-radius:20px;white-space:nowrap;}
   .entry .mins.evt{color:var(--event);background:var(--event-soft);}
   .entry .del{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:16px;padding:2px 4px;}
+  .entry .edit{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:13px;padding:2px 4px;}
+  .edit-form{display:flex;flex-wrap:wrap;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .edit-form input{font-family:'IBM Plex Sans', sans-serif;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;background:#fff;}
+  .edit-form input[name="etitle"]{flex:1 1 120px;}
+  .edit-form input[name="enote"]{flex:2 1 140px;}
+  .edit-form input[name="etime"]{width:70px;flex:0 0 70px;}
+  .edit-form .save{background:var(--event);color:#fff;border:none;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;}
+  .edit-form .cancel{background:none;border:1px solid var(--line);color:var(--ink-soft);border-radius:9px;padding:8px 12px;font-size:12px;cursor:pointer;}
   .empty-note{color:var(--ink-soft);font-size:13px;padding:6px 0 10px;}
 
   .addform{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
@@ -212,7 +220,7 @@ function migrateTraining(raw){
   return [];
 }
 
-let state = { currentDate: new Date(), days:{}, index:[], view:'day', historyOpen:false, subjects:[], subjectsOpen:false };
+let state = { currentDate: new Date(), days:{}, index:[], view:'day', historyOpen:false, subjects:[], subjectsOpen:false, editingEventId:null };
 
 const DEFAULT_SUBJECTS = ['Matematik','Geometri','Fizik','Kimya','Biyoloji','Türkçe','Tarih','Coğrafya','Felsefe','İngilizce'];
 
@@ -339,6 +347,18 @@ async function delEvent(key,id){
   data.events = (data.events||[]).filter(e=>e.id!==id);
   await persist(key); render();
 }
+async function updateEvent(key,id,title,time,note){
+  if(!title) return;
+  const data = await ensureDay(key);
+  const e = (data.events||[]).find(x=>x.id===id);
+  if(!e) return;
+  e.title = title; e.time = time||''; e.note = note||'';
+  await persist(key);
+  state.editingEventId = null;
+  render();
+}
+function startEditEvent(id){ state.editingEventId = id; render(); }
+function cancelEditEvent(){ state.editingEventId = null; render(); }
 
 async function init(){
   try{
@@ -433,7 +453,18 @@ function renderDayHtml(){
   const events = data.events||[];
   let eventsHtml = events.length===0
     ? `<div class="empty-note">Bu gün için planlı etkinlik yok.</div>`
-    : events.map(e=>`<div class="entry"><span class="swatch evt"></span><div class="info"><div class="subj">${escapeHtml(e.title)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div>${e.time?`<span class="mins evt">${escapeHtml(e.time)}</span>`:''}<button class="del" onclick="delEvent('${key}', ${JSON.stringify(e.id)})">×</button></div>`).join('');
+    : events.map(e=>{
+        if(state.editingEventId===e.id){
+          return `<form class="edit-form" onsubmit="return handleUpdateEvent(event,'${key}',${JSON.stringify(e.id)})">
+            <input name="etitle" placeholder="Etkinlik" value="${escapeHtml(e.title)}" autocomplete="off">
+            <input name="etime" placeholder="Saat" value="${escapeHtml(e.time||'')}" autocomplete="off">
+            <input name="enote" placeholder="Not" value="${escapeHtml(e.note||'')}" autocomplete="off">
+            <button type="submit" class="save">Kaydet</button>
+            <button type="button" class="cancel" onclick="cancelEditEvent()">İptal</button>
+          </form>`;
+        }
+        return `<div class="entry"><span class="swatch evt"></span><div class="info"><div class="subj">${escapeHtml(e.title)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div>${e.time?`<span class="mins evt">${escapeHtml(e.time)}</span>`:''}<button class="edit" onclick="startEditEvent(${JSON.stringify(e.id)})">✎</button><button class="del" onclick="delEvent('${key}', ${JSON.stringify(e.id)})">×</button></div>`;
+      }).join('');
 
   let historyHtml = '';
   if(state.historyOpen){
@@ -602,6 +633,12 @@ function handleAddEvent(ev,key){
   ev.preventDefault(); const f=ev.target;
   const title=f.title.value.trim(), time=f.time.value.trim(), note=f.note.value.trim();
   if(title){ addEvent(key,title,time,note); f.reset(); } else { flashError(f.title); }
+  return false;
+}
+function handleUpdateEvent(ev,key,id){
+  ev.preventDefault(); const f=ev.target;
+  const title=f.etitle.value.trim(), time=f.etime.value.trim(), note=f.enote.value.trim();
+  if(title){ updateEvent(key,id,title,time,note); } else { flashError(f.etitle); }
   return false;
 }
 function handleAddTraining(ev,key){
