@@ -146,14 +146,6 @@
 
   .hist-toggle{display:block;width:100%;text-align:center;background:none;border:1px dashed var(--line);border-radius:12px;padding:10px;color:var(--ink-soft);font-size:12px;font-family:'IBM Plex Mono', monospace;cursor:pointer;margin-bottom:14px;}
 
-  .backup-card{display:flex;gap:10px;margin-bottom:14px;}
-  .backup-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 8px;cursor:pointer;font-family:'IBM Plex Sans',sans-serif;}
-  .backup-btn .bt{font-size:13px;font-weight:600;color:var(--ink);}
-  .backup-btn .bs{font-size:10px;color:var(--ink-soft);font-family:'IBM Plex Mono',monospace;}
-  .backup-btn:active{transform:scale(0.98);}
-  .backup-btn:hover{border-color:var(--ink);}
-  .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 18px;border-radius:20px;font-size:12px;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s ease;}
-  .toast.show{opacity:1;}
   .hist-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px;}
   .hist-row:last-child{border-bottom:none;}
   .hist-row .d{width:70px;flex-shrink:0;color:var(--ink-soft);font-family:'IBM Plex Mono', monospace;font-size:11px;}
@@ -541,11 +533,7 @@ function renderDayHtml(){
     </div>
     <button class="hist-toggle" onclick="toggleHistory()">${state.historyOpen?'▲ Geçmişi Gizle':'▼ Geçmişi Göster'}</button>
     ${historyHtml}
-    <div class="backup-card">
-      <button class="backup-btn" onclick="exportBackupHtml()"><span class="bt">📥 HTML Yedek</span><span class="bs">okunabilir, açılabilir</span></button>
-      <button class="backup-btn" onclick="exportBackupJson()"><span class="bt">🗂 JSON Yedek</span><span class="bs">ham veri</span></button>
-    </div>
-    <div class="note">Bu sayfadaki veriler bu linke erişen herkes tarafından görülüp düzenlenebilir. "Hafta Planı" sekmesinden gelecek günler için önceden ders/antrenman/etkinlik girebilirsiniz — girdiğiniz gün geldiğinde orada durmaya devam eder. Düzenli aralıklarla "HTML Yedek" alıp telefonunuzda/bilgisayarınızda saklamanızı öneririm.</div>
+    <div class="note">Bu sayfadaki veriler bu linke erişen herkes tarafından görülüp düzenlenebilir. "Hafta Planı" sekmesinden gelecek günler için önceden ders/antrenman/etkinlik girebilirsiniz — girdiğiniz gün geldiğinde orada durmaya devam eder.</div>
   `;
 }
 
@@ -606,10 +594,6 @@ function renderWeekHtml(){
       <div class="stat"><div class="num">${we}</div><div class="lbl">Etkinlik</div></div>
     </div>
     ${cards}
-    <div class="backup-card">
-      <button class="backup-btn" onclick="exportBackupHtml()"><span class="bt">📥 HTML Yedek</span><span class="bs">okunabilir, açılabilir</span></button>
-      <button class="backup-btn" onclick="exportBackupJson()"><span class="bt">🗂 JSON Yedek</span><span class="bs">ham veri</span></button>
-    </div>
     <div class="note">Bu görünümde önümüzdeki (veya geçmiş) günlere doğrudan ders, antrenman ve etkinlik girebilirsiniz. Girdiğiniz gün geldiğinde kayıtlar orada duruyor olacak — "Gün" sekmesinden o güne gidip detaylandırabilirsiniz.</div>
   `;
 }
@@ -676,112 +660,6 @@ function weekAddTraining(ev,key){
 }
 function toggleHistory(){ state.historyOpen = !state.historyOpen; render(); }
 
-// ---- backup / export ----
-function showToast(msg){
-  let t = document.getElementById('toast');
-  if(!t){ t = document.createElement('div'); t.id='toast'; t.className='toast'; document.body.appendChild(t); }
-  t.textContent = msg;
-  t.classList.add('show');
-  clearTimeout(window._toastTimer);
-  window._toastTimer = setTimeout(()=>t.classList.remove('show'), 2500);
-}
-function downloadFile(content, filename, mime){
-  const blob = new Blob([content], {type: mime});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = filename;
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url), 1000);
-}
-function todayStamp(){ const d=new Date(); return dkey(d); }
-
-async function collectAllDays(){
-  const keys = [...new Set(state.index.map(e=>e.date))].sort(); // ascending
-  await Promise.all(keys.map(ensureDay));
-  return keys.map(k => ({ key:k, data: getDay(k) }));
-}
-
-async function exportBackupJson(){
-  const days = await collectAllDays();
-  const payload = { exportedAt: new Date().toISOString(), days: days.map(d=>({date:d.key, ...d.data})) };
-  downloadFile(JSON.stringify(payload, null, 2), `ders-antrenman-yedek-${todayStamp()}.json`, 'application/json');
-  showToast('JSON yedek indirildi');
-}
-
-async function exportBackupHtml(){
-  const days = await collectAllDays();
-  const now = new Date();
-  const stamp = `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}, ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
-  let totalStudy=0, totalTrain=0, totalEvt=0;
-  const rows = days.map(({key,data})=>{
-    const [y,m,dd] = key.split('-');
-    const wd = new Date(parseInt(y),parseInt(m)-1,parseInt(dd));
-    const dayLabel = `${WEEKDAYS_FULL[(wd.getDay()+6)%7]}, ${parseInt(dd)} ${MONTHS[parseInt(m)-1]} ${y}`;
-    const studyMin = data.studyEntries.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
-    totalStudy += studyMin; if(data.training.length>0) totalTrain++; totalEvt += (data.events||[]).length;
-
-    const studyRows = data.studyEntries.length
-      ? data.studyEntries.map(e=>`<tr><td>${escapeHtml(e.subject)}</td><td>${escapeHtml(e.topic||'—')}</td><td>${e.minutes} dk</td><td>${STATUS_SHORT[e.status||'todo']}</td></tr>`).join('')
-      : `<tr><td colspan="4" class="muted">Ders kaydı yok</td></tr>`;
-
-    const trainInfo = data.training.length>0
-      ? data.training.map(e=>`<p class="chip-line"><span class="b b-sport">${escapeHtml(e.type)}</span> · ${formatDuration(e.minutes)} ${e.note?`· ${escapeHtml(e.note)}`:''}</p>`).join('')
-      : `<p class="chip-line muted">Antrenman yok</p>`;
-
-    const evts = (data.events||[]);
-    const evtHtml = evts.length
-      ? `<ul class="evtlist">` + evts.map(e=>`<li><b>${escapeHtml(e.title)}</b>${e.time?` — ${escapeHtml(e.time)}`:''}${e.note?` <span class="muted">(${escapeHtml(e.note)})</span>`:''}</li>`).join('') + `</ul>`
-      : '';
-
-    return `
-      <section class="day">
-        <h2>${dayLabel} <span class="muted small">(${key})</span></h2>
-        <table>
-          <thead><tr><th>Ders</th><th>Konu</th><th>Süre</th><th>Durum</th></tr></thead>
-          <tbody>${studyRows}</tbody>
-        </table>
-        ${trainInfo}
-        ${evtHtml}
-      </section>`;
-  }).join('\n');
-
-  const html = `<!DOCTYPE html>
-<html lang="tr"><head><meta charset="UTF-8"><title>Ders & Antrenman Yedek — ${stamp}</title>
-<style>
-  body{font-family:Georgia,'Times New Roman',serif;max-width:760px;margin:40px auto;padding:0 20px;color:#1C2B29;line-height:1.5;}
-  h1{font-size:26px;margin-bottom:4px;}
-  .meta{color:#5B6B67;font-size:13px;margin-bottom:24px;font-family:Arial,sans-serif;}
-  .summary{display:flex;gap:16px;margin-bottom:28px;font-family:Arial,sans-serif;}
-  .summary div{background:#F3F6F4;border-radius:10px;padding:10px 16px;font-size:13px;}
-  .summary b{font-size:18px;display:block;}
-  section.day{border-top:1px solid #D9E2DD;padding:18px 0;}
-  section.day h2{font-size:16px;margin:0 0 10px;font-family:Arial,sans-serif;}
-  table{border-collapse:collapse;width:100%;font-family:Arial,sans-serif;font-size:13px;margin-bottom:8px;}
-  th,td{text-align:left;padding:5px 8px;border-bottom:1px solid #EEF1EF;}
-  th{color:#5B6B67;font-weight:600;font-size:11px;text-transform:uppercase;}
-  .chip-line{font-family:Arial,sans-serif;font-size:13px;margin:6px 0;}
-  .b{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600;}
-  .b-sport{background:#FBEED2;color:#8A5A15;}
-  .evtlist{font-family:Arial,sans-serif;font-size:13px;margin:6px 0 0;padding-left:18px;}
-  .muted{color:#8a938f;}
-  .small{font-size:11px;font-weight:normal;}
-  @media print{ body{margin:10px auto;} }
-</style></head>
-<body>
-  <h1>Ders &amp; Antrenman Yedek</h1>
-  <div class="meta">Bu yedek ${stamp} tarihinde indirildi · toplam ${days.length} gün kaydı içerir.</div>
-  <div class="summary">
-    <div><b>${totalStudy}</b>toplam dk ders</div>
-    <div><b>${totalTrain}</b>antrenman günü</div>
-    <div><b>${totalEvt}</b>etkinlik</div>
-  </div>
-  ${rows || '<p class="muted">Henüz kayıt yok.</p>'}
-</body></html>`;
-
-  downloadFile(html, `ders-antrenman-yedek-${todayStamp()}.html`, 'text/html');
-  showToast('HTML yedek indirildi');
-}
 
 window.addEventListener('DOMContentLoaded', init);
 </script>
