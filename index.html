@@ -328,6 +328,57 @@ header.top .tag .av { width: 20px; height: 20px; border-radius: 50%; background:
 .hist-row .badge.sport { background: var(--sport-soft); color: var(--sport-deep); }
 .hist-row .badge.event { background: var(--event-soft); color: var(--event); }
 .err-box { text-align: left; white-space: pre-wrap; font-family: var(--f-mono); font-size: 12px; color: var(--danger); background: var(--danger-soft); border-radius: var(--radius-sm); padding: 14px; margin-top: 40px; }
+
+/* Hafta tablo görünümü */
+.wrap.wide { max-width: 900px; }
+.modetoggle { display: inline-flex; gap: 2px; padding: 3px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; }
+.modetoggle button { border: none; background: none; border-radius: 999px; padding: 5px 12px; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.modetoggle button.active { background: var(--ink); color: var(--bg); }
+.weekbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.wkadd { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; margin-bottom: 12px; box-shadow: var(--shadow); }
+.wkadd select, .wkadd input { border: 1px solid var(--line); border-radius: 9px; padding: 7px 9px; font-size: 13px; background: var(--surface-2); min-width: 0; }
+.wkadd select:focus, .wkadd input:focus { outline: none; border-color: var(--study); background: var(--surface); box-shadow: 0 0 0 3px var(--study-soft); }
+.wkadd .kind { display: inline-flex; gap: 2px; padding: 3px; background: var(--surface-2); border-radius: 10px; }
+.wkadd .kind button { border: none; background: none; border-radius: 8px; padding: 5px 9px; font-size: 12px; font-weight: 600; color: var(--ink-soft); }
+.wkadd[data-kind="study"] .kind [data-k="study"] { background: var(--study); color: var(--on-accent); }
+.wkadd[data-kind="sport"] .kind [data-k="sport"] { background: var(--sport); color: var(--on-accent); }
+.wkadd[data-kind="event"] .kind [data-k="event"] { background: var(--event); color: var(--on-accent); }
+.wkadd .f-study, .wkadd .f-sport, .wkadd .f-event { display: none; }
+.wkadd[data-kind="study"] .f-study, .wkadd[data-kind="sport"] .f-sport, .wkadd[data-kind="event"] .f-event { display: block; }
+.wkadd .grow { flex: 1 1 120px; }
+.wkadd .num { flex: 0 0 64px; }
+.wkadd .go { border: none; border-radius: 9px; padding: 8px 14px; font-size: 13px; font-weight: 700; background: var(--study); color: var(--on-accent); }
+.wkadd[data-kind="sport"] .go { background: var(--sport); }
+.wkadd[data-kind="event"] .go { background: var(--event); }
+
+.wktable-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto; }
+.wktable { width: 100%; border-collapse: collapse; table-layout: fixed; min-width: 340px; }
+.wktable th, .wktable td { border-bottom: 1px solid var(--line); padding: 6px; vertical-align: top; text-align: left; }
+.wktable tr:last-child > * { border-bottom: none; }
+.wktable td + td, .wktable th + th, .wktable th + td { border-left: 1px solid var(--line); }
+.wktable thead th { font-family: var(--f-mono); font-size: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); padding: 9px 8px; background: var(--surface-2); }
+.wktable thead th .dotc { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+.wktable col.c-day { width: 52px; }
+.wktable .daycell button { background: none; border: none; padding: 2px 0; width: 100%; text-align: center; color: var(--ink); }
+.wktable .daycell .dw { display: block; font-family: var(--f-mono); font-size: 9.5px; text-transform: uppercase; color: var(--ink-soft); }
+.wktable .daycell .dn { display: block; font-family: var(--f-display); font-size: 19px; font-weight: 800; line-height: 1.1; }
+.wktable tr.today .daycell .dn { color: var(--study); }
+.wktable tr.today > * { background: color-mix(in srgb, var(--study-soft) 45%, transparent); }
+.wktable tr.weekend .daycell .dw { color: var(--event); }
+.wktable .cell { display: flex; flex-wrap: wrap; gap: 4px; align-items: flex-start; min-height: 26px; }
+.wktable .chip { font-size: 11px; padding: 3px 3px 3px 8px; max-width: 100%; }
+.wktable .chip .clicktext, .wktable .chip .lbl { white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.wktable .plus { border: 1px dashed var(--line-strong); background: none; color: var(--ink-faint); border-radius: 999px; width: 24px; height: 22px; font-size: 14px; line-height: 1; padding: 0; opacity: .6; }
+.wktable tr:hover .plus, .wktable .plus:focus-visible { opacity: 1; }
+.wktable .plus:hover { color: var(--ink); border-color: var(--ink-soft); }
+.wktable tfoot td, .wktable tfoot th { border-top: 1px solid var(--line-strong); background: var(--surface-2); font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft); padding: 8px; }
+.wktable tfoot b { color: var(--ink); font-weight: 600; }
+@media (max-width: 480px) {
+  .wktable col.c-day { width: 40px; }
+  .wktable th, .wktable td { padding: 5px 4px; }
+  .wktable .chip { font-size: 10.5px; padding: 2px 2px 2px 6px; }
+  .wktable .daycell .dn { font-size: 16px; }
+}
 </style>
 </head>
 <body>
@@ -353,7 +404,9 @@ function migrateTraining(raw){
   return [];
 }
 
-let state = { currentDate: new Date(), days:{}, index:[], view:'day', historyOpen:false, subjects:[], subjectsOpen:false, editingEventId:null };
+let state = { currentDate: new Date(), days:{}, index:[], view:'day', historyOpen:false, subjects:[], subjectsOpen:false, editingEventId:null, weekMode:readPref('weekMode','table'), wkAdd:{day:null, kind:'study'} };
+function readPref(k,def){ try{ return localStorage.getItem(k)||def; }catch(e){ return def; } }
+function writePref(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 
 const DEFAULT_SUBJECTS = ['Matematik','Geometri','Fizik','Kimya','Biyoloji','Türkçe','Tarih','Coğrafya','Felsefe','İngilizce'];
 
@@ -515,6 +568,7 @@ async function init(){
 // ---- render dispatch ----
 function render(){
   const app = document.getElementById('app');
+  app.classList.toggle('wide', state.view==='week' && state.weekMode==='table');
   app.innerHTML = `
     <header class="top"><h1><span class="mark">P</span>PlanMee</h1><span class="tag"><span class="av">E</span>Ela Ada İşler</span></header>
     <div class="viewtabs">
@@ -681,7 +735,110 @@ function renderDayHtml(){
   `;
 }
 
+function setWeekMode(m){ state.weekMode=m; writePref('weekMode',m); render(); }
+function modeToggleHtml(){
+  return `<div class="modetoggle" role="group" aria-label="Görünüm">
+    <button class="${state.weekMode==='table'?'active':''}" onclick="setWeekMode('table')">Tablo</button>
+    <button class="${state.weekMode==='list'?'active':''}" onclick="setWeekMode('list')">Liste</button>
+  </div>`;
+}
+function setWkKind(k){
+  state.wkAdd.kind=k;
+  const f=document.getElementById('wkadd'); if(f) f.dataset.kind=k;
+}
+function prefillWkAdd(key,kind){
+  state.wkAdd={day:key, kind};
+  const f=document.getElementById('wkadd'); if(!f) return;
+  f.day.value=key; f.dataset.kind=kind;
+  const first = kind==='study'?f.minutes : kind==='sport'?f.sminutes : f.title;
+  f.scrollIntoView({block:'nearest'}); first.focus();
+}
+function weekTableAdd(ev){
+  ev.preventDefault(); const f=ev.target, key=f.day.value, kind=f.dataset.kind;
+  state.wkAdd={day:key, kind};
+  if(kind==='study'){
+    const subject=f.subject.value, minutes=f.minutes.value;
+    if(!subject){ flashError(f.subject); return false; }
+    if(!minutes){ flashError(f.minutes); return false; }
+    addEntry(key,subject,'',minutes);
+  }else if(kind==='sport'){
+    const minutes=f.sminutes.value;
+    if(!minutes){ flashError(f.sminutes); return false; }
+    addTraining(key,f.type.value,minutes,'');
+  }else{
+    const title=f.title.value.trim();
+    if(!title){ flashError(f.title); return false; }
+    addEvent(key,title,f.time.value.trim(),'');
+  }
+  return false;
+}
+function renderWeekTableHtml(){
+  const mon = mondayOf(state.currentDate);
+  const {ws,wt,we} = weekStats(state.currentDate);
+  const rangeLabel = `${mon.getDate()} ${MONTHS[mon.getMonth()].slice(0,3)} – ${addDays(mon,6).getDate()} ${MONTHS[addDays(mon,6).getMonth()].slice(0,3)}`;
+  const keys = []; for(let i=0;i<7;i++) keys.push(dkey(addDays(mon,i)));
+  const todayKey = dkey(new Date());
+  const selDay = keys.includes(state.wkAdd.day) ? state.wkAdd.day : (keys.includes(todayKey) ? todayKey : keys[0]);
+  const kind = state.wkAdd.kind;
+  let trainMins = 0;
+
+  const rows = keys.map((key,i)=>{
+    const wd = addDays(mon,i), data = getDay(key);
+    const study = data.studyEntries.map(e=>{
+      const st = e.status||'todo';
+      return `<span class="chip study status-${st}"><button type="button" class="clicktext" title="Durumu değiştir" onclick="cycleStatus('${key}',${JSON.stringify(e.id)})">${escapeHtml(e.subject)} · ${e.minutes}dk</button><button type="button" class="x" aria-label="Sil" onclick="delEntry('${key}',${JSON.stringify(e.id)})">×</button></span>`;
+    }).join('');
+    const sport = data.training.map(e=>{ trainMins += parseInt(e.minutes)||0;
+      return `<span class="chip sport"><span class="lbl">${escapeHtml(e.type)} · ${formatDuration(e.minutes)}</span><button type="button" class="x" aria-label="Sil" onclick="delTraining('${key}',${JSON.stringify(e.id)})">×</button></span>`; }).join('');
+    const evts = (data.events||[]).map(e=>`<span class="chip event"><span class="lbl">${escapeHtml(e.title)}${e.time?' · '+escapeHtml(e.time):''}</span><button type="button" class="x" aria-label="Sil" onclick="delEvent('${key}',${JSON.stringify(e.id)})">×</button></span>`).join('');
+    const plus = k => `<button type="button" class="plus" aria-label="Ekle" onclick="prefillWkAdd('${key}','${k}')">+</button>`;
+    return `<tr class="${key===todayKey?'today':''} ${i>=5?'weekend':''}">
+      <th class="daycell" scope="row"><button onclick="goToDate(new Date(${wd.getFullYear()},${wd.getMonth()},${wd.getDate()}))" title="Güne git"><span class="dw">${WEEKDAYS[i]}</span><span class="dn">${wd.getDate()}</span></button></th>
+      <td><div class="cell">${study}${plus('study')}</div></td>
+      <td><div class="cell">${sport}${plus('sport')}</div></td>
+      <td><div class="cell">${evts}${plus('event')}</div></td>
+    </tr>`;
+  }).join('');
+
+  const dayOpts = keys.map((k,i)=>{ const d=addDays(mon,i); return `<option value="${k}" ${k===selDay?'selected':''}>${WEEKDAYS[i]} ${d.getDate()}</option>`; }).join('');
+  const subjOpts = state.subjects.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+
+  return `
+    <div class="weeknav">
+      <button onclick="shiftWeek(-1)">‹ Önceki</button>
+      <span class="rng">${rangeLabel}</span>
+      <button onclick="shiftWeek(1)">Sonraki ›</button>
+    </div>
+    <div class="weekbar">${modeToggleHtml()}</div>
+    <form class="wkadd" id="wkadd" data-kind="${kind}" onsubmit="return weekTableAdd(event)">
+      <select name="day" aria-label="Gün">${dayOpts}</select>
+      <div class="kind" role="group" aria-label="Tür">
+        <button type="button" data-k="study" onclick="setWkKind('study')">Ders</button>
+        <button type="button" data-k="sport" onclick="setWkKind('sport')">Antrenman</button>
+        <button type="button" data-k="event" onclick="setWkKind('event')">Etkinlik</button>
+      </div>
+      <select name="subject" class="f-study grow" aria-label="Ders">${subjOpts}</select>
+      <input name="minutes" type="number" min="1" placeholder="dk" class="f-study num" aria-label="Dakika">
+      <select name="type" class="f-sport grow" aria-label="Antrenman türü"><option value="Top">Top</option><option value="Kuvvet">Kuvvet</option></select>
+      <input name="sminutes" type="number" min="1" placeholder="dk" class="f-sport num" aria-label="Dakika">
+      <input name="title" placeholder="Etkinlik adı" class="f-event grow" autocomplete="off" aria-label="Etkinlik">
+      <input name="time" placeholder="Saat" class="f-event num" autocomplete="off" aria-label="Saat">
+      <button type="submit" class="go">Ekle</button>
+    </form>
+    <div class="wktable-wrap">
+      <table class="wktable">
+        <colgroup><col class="c-day"><col><col><col></colgroup>
+        <thead><tr><th></th><th><span class="dotc" style="background:var(--study)"></span>Ders</th><th><span class="dotc" style="background:var(--sport)"></span>Antrenman</th><th><span class="dotc" style="background:var(--event)"></span>Etkinlik</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><th>Top.</th><td><b>${ws}</b> dk</td><td><b>${wt}</b>/7 gün · ${formatDuration(trainMins)}</td><td><b>${we}</b> etkinlik</td></tr></tfoot>
+      </table>
+    </div>
+    <div class="note">Ders kaydına dokununca durumu değişir (Yapılacak → Devam → Tamam). Hücredeki + o günü ve türü ekleme çubuğuna getirir. Gün numarasına dokunarak o günün detayına geçebilirsiniz.</div>
+  `;
+}
+
 function renderWeekHtml(){
+  if(state.weekMode==='table') return renderWeekTableHtml();
   const anchor = state.currentDate, mon = mondayOf(anchor);
   const {ws,wt,we} = weekStats(anchor);
   const rangeLabel = `${mon.getDate()} ${MONTHS[mon.getMonth()].slice(0,3)} – ${addDays(mon,6).getDate()} ${MONTHS[addDays(mon,6).getMonth()].slice(0,3)}`;
@@ -735,6 +892,7 @@ function renderWeekHtml(){
       <span class="rng">${rangeLabel}</span>
       <button onclick="shiftWeek(1)">Sonraki ›</button>
     </div>
+    <div class="weekbar">${modeToggleHtml()}</div>
     ${statsHtml(ws,wt,we,true)}
     ${cards}
     <div class="note">Bu görünümde önümüzdeki (veya geçmiş) günlere doğrudan ders, antrenman ve etkinlik girebilirsiniz. Girdiğiniz gün geldiğinde kayıtlar orada duruyor olacak — "Gün" sekmesinden o güne gidip detaylandırabilirsiniz.</div>
