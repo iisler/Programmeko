@@ -1,0 +1,75 @@
+import { useState } from 'react';
+import client from '../api/client';
+
+const EVENT_ICON = (
+  <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M8 3v4M16 3v4M3.5 10h17" /></svg>
+);
+
+export default function EventCard({ date, events, onRefresh }) {
+  const [form, setForm] = useState({ title: '', time: '', note: '' });
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({});
+
+  async function addEvent(e) {
+    e.preventDefault();
+    if (!form.title) return;
+    await client.post(`/days/${date}/events`, form);
+    setForm({ title: '', time: '', note: '' });
+    onRefresh();
+  }
+
+  async function deleteEvent(id) {
+    await client.delete(`/days/${date}/events/${id}`);
+    onRefresh();
+  }
+
+  async function saveEdit(id) {
+    await client.put(`/days/${date}/events/${id}`, editForm);
+    setEditingId(null);
+    onRefresh();
+  }
+
+  function startEdit(ev) {
+    setEditingId(ev.id);
+    setEditForm({ title: ev.title, time: ev.time, note: ev.note });
+  }
+
+  return (
+    <div className="card">
+      <div className="card-head">
+        <div className="card-title"><span className="icon-tile evt">{EVENT_ICON}</span><h2>Etkinlikler</h2></div>
+      </div>
+
+      {events.length === 0
+        ? <div className="empty-note">Bu gün için planlı etkinlik yok.</div>
+        : events.map(ev => editingId === ev.id ? (
+          <form key={ev.id} className="edit-form" onSubmit={e => { e.preventDefault(); saveEdit(ev.id); }}>
+            <input name="etitle" placeholder="Etkinlik" value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} />
+            <input name="etime" placeholder="Saat" value={editForm.time} onChange={e => setEditForm(f => ({ ...f, time: e.target.value }))} />
+            <input name="enote" placeholder="Not" value={editForm.note} onChange={e => setEditForm(f => ({ ...f, note: e.target.value }))} />
+            <button type="submit" className="save">Kaydet</button>
+            <button type="button" className="cancel" onClick={() => setEditingId(null)}>İptal</button>
+          </form>
+        ) : (
+          <div key={ev.id} className="entry">
+            <span className="swatch evt" />
+            <div className="info">
+              <div className="subj">{ev.title}</div>
+              {ev.note && <div className="topic">{ev.note}</div>}
+            </div>
+            {ev.time && <span className="mins evt">{ev.time}</span>}
+            <button className="edit" aria-label="Düzenle" onClick={() => startEdit(ev)}>✎</button>
+            <button className="del" aria-label="Sil" onClick={() => deleteEvent(ev.id)}>×</button>
+          </div>
+        ))
+      }
+
+      <form className="addform event" onSubmit={addEvent}>
+        <input placeholder="Etkinlik (ör. deneme sınavı)" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+        <input placeholder="Saat" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
+        <input placeholder="Not (opsiyonel)" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
+        <button type="submit">Ekle</button>
+      </form>
+    </div>
+  );
+}
