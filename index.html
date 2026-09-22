@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Ders & Antrenman Takip</title>
+<title>PlanMee</title>
+<meta name="theme-color" content="#141A2E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <!-- Firebase (ücretsiz Realtime Database) - verinin gerçekten kaydedildiği yer.
      Aşağıdaki firebaseConfig değerlerini kendi Firebase projenizden alıp buraya yapıştırın. -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
@@ -25,177 +26,317 @@
   const db = firebase.database();
 </script>
 <style>
-  :root{
-    --bg:#EEF3F0;
-    --paper:#FBFCFA;
-    --ink:#1C2B29;
-    --ink-soft:#5B6B67;
-    --line:#D9E2DD;
-    --study:#2F6F4F;
-    --study-soft:#DCEBE3;
-    --sport:#D9A441;
-    --sport-soft:#FBEED2;
-    --sport-deep:#8A5A15;
-    --event:#6E58A8;
-    --event-soft:#EAE4F5;
-    --radius:16px;
+
+/* PlanMee — "defter + saha" teması: mavi mürekkep (ders), çim yeşili (antrenman), mercan (etkinlik) */
+:root {
+  --bg: #ECEFF5;
+  --surface: #FFFFFF;
+  --surface-2: #F5F7FB;
+  --ink: #141A2E;
+  --ink-soft: #5D6479;
+  --ink-faint: #9098AD;
+  --line: #DDE2EC;
+  --line-strong: #C6CDDC;
+
+  --study: #2F5BD8;
+  --study-soft: #E3EAFC;
+  --sport: #17936A;
+  --sport-soft: #DDF3EA;
+  --sport-deep: #0F6B4C;
+  --event: #E0553A;
+  --event-soft: #FCE6E0;
+  --warn: #B7791F;
+  --warn-soft: #FBF0D9;
+  --danger: #C4372B;
+  --danger-soft: #FCEBE9;
+
+  --on-accent: #FFFFFF;
+  --hero-bg: #141A2E;
+  --hero-ink: #F2F4FA;
+  --hero-soft: #A3AAC2;
+  --hero-line: #2A3250;
+
+  --radius: 18px;
+  --radius-sm: 11px;
+  --shadow: 0 1px 2px rgba(20, 26, 46, .05), 0 6px 20px -10px rgba(20, 26, 46, .18);
+
+  --f-display: 'Bricolage Grotesque', 'Figtree', system-ui, sans-serif;
+  --f-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0C1020;
+    --surface: #151A2D;
+    --surface-2: #1B2138;
+    --ink: #E9ECF5;
+    --ink-soft: #A2A9BF;
+    --ink-faint: #6B7390;
+    --line: #262D47;
+    --line-strong: #353E5E;
+    --study: #7C9CFF;
+    --study-soft: #1E2A52;
+    --sport: #3CCB95;
+    --sport-soft: #123A2E;
+    --sport-deep: #6EE0B4;
+    --event: #FF8A70;
+    --event-soft: #43231E;
+    --warn: #F0B45A;
+    --warn-soft: #3A2C14;
+    --danger: #FF7B6E;
+    --danger-soft: #3D1C1A;
+    --on-accent: #0C1020;
+    --hero-bg: #1B2240;
+    --hero-ink: #F2F4FA;
+    --hero-soft: #9AA3C4;
+    --hero-line: #2F3862;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .6);
   }
-  *{box-sizing:border-box;}
-  body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans', sans-serif;-webkit-font-smoothing:antialiased;}
-  .wrap{max-width:520px;margin:0 auto;padding:20px 16px 60px;}
-  h1,h2,h3{font-family:'Fraunces', serif;margin:0;letter-spacing:-0.01em;}
-  header.top{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px;}
-  header.top h1{font-size:22px;font-weight:600;}
-  header.top .tag{font-family:'IBM Plex Mono', monospace;font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.06em;}
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0C1020;
+  --surface: #151A2D;
+  --surface-2: #1B2138;
+  --ink: #E9ECF5;
+  --ink-soft: #A2A9BF;
+  --ink-faint: #6B7390;
+  --line: #262D47;
+  --line-strong: #353E5E;
+  --study: #7C9CFF;
+  --study-soft: #1E2A52;
+  --sport: #3CCB95;
+  --sport-soft: #123A2E;
+  --sport-deep: #6EE0B4;
+  --event: #FF8A70;
+  --event-soft: #43231E;
+  --warn: #F0B45A;
+  --warn-soft: #3A2C14;
+  --danger: #FF7B6E;
+  --danger-soft: #3D1C1A;
+  --on-accent: #0C1020;
+  --hero-bg: #1B2240;
+  --hero-ink: #F2F4FA;
+  --hero-soft: #9AA3C4;
+  --hero-line: #2F3862;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .6);
+}
 
-  .viewtabs{display:flex;gap:6px;margin-bottom:14px;}
-  .viewtabs button{flex:1;padding:9px;border-radius:10px;border:1px solid var(--line);background:var(--paper);font-family:'IBM Plex Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);cursor:pointer;}
-  .viewtabs button.active{background:var(--ink);color:#fff;border-color:var(--ink);}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 14px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--study); outline-offset: 2px; }
+.wrap { max-width: 560px; margin: 0 auto; padding: 20px 16px 64px; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; letter-spacing: -0.02em; text-wrap: balance; }
 
-  .datenav{display:flex;align-items:center;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;}
-  .datenav button{background:none;border:none;font-size:18px;color:var(--ink);cursor:pointer;padding:6px 10px;border-radius:8px;}
-  .datenav button:hover{background:var(--line);}
-  .datenav .label{text-align:center;flex:1;}
-  .datenav .label .day{font-family:'Fraunces', serif;font-size:16px;font-weight:600;}
-  .datenav .label .sub{font-size:11px;color:var(--ink-soft);font-family:'IBM Plex Mono', monospace;}
+/* Header */
+header.top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+header.top h1 { font-size: 24px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+header.top h1 .mark { width: 26px; height: 26px; border-radius: 8px; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-size: 15px; }
+header.top .tag { font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px 5px 6px; display: inline-flex; align-items: center; gap: 7px; }
+header.top .tag .av { width: 20px; height: 20px; border-radius: 50%; background: var(--study-soft); color: var(--study); display: grid; place-items: center; font-weight: 600; text-transform: uppercase; }
+.logout-btn { background: none; border: 1px solid var(--line-strong); border-radius: 999px; padding: 7px 14px; font-size: 12px; font-family: var(--f-mono); color: var(--ink-soft); }
+.logout-btn:hover { border-color: var(--ink); color: var(--ink); }
 
-  .trail{display:flex;justify-content:space-between;background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:14px 10px;margin-bottom:18px;}
-  .trail-dot{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;border:none;background:none;flex:1;}
-  .trail-dot .wk{font-family:'IBM Plex Mono', monospace;font-size:10px;color:var(--ink-soft);}
-  .trail-dot .dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--line);background:var(--paper);position:relative;overflow:visible;}
-  .trail-dot .dot.study{background:var(--study); border-color:var(--study);}
-  .trail-dot .dot.sport{background:var(--sport); border-color:var(--sport);}
-  .trail-dot .dot.both{background:linear-gradient(135deg, var(--study) 50%, var(--sport) 50%); border-color:var(--ink);}
-  .trail-dot.selected .dot{box-shadow:0 0 0 3px var(--ink);}
-  .trail-dot.istoday .wk{color:var(--ink); font-weight:600;}
-  .trail-dot.evt .dot::after{content:'';position:absolute;top:-3px;right:-3px;width:8px;height:8px;border-radius:50%;background:var(--event);border:1.5px solid var(--paper);}
+/* Segmented view tabs */
+.viewtabs { display: flex; gap: 4px; margin-bottom: 16px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.viewtabs button { flex: 1; padding: 9px; border-radius: 10px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--ink-soft); transition: background .15s, color .15s; }
+.viewtabs button:hover { color: var(--ink); }
+.viewtabs button.active { background: var(--ink); color: var(--bg); }
 
-  .card{background:var(--paper);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
-  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .card-head h2{font-size:16px;}
-  .card-head .total{font-family:'IBM Plex Mono', monospace;font-size:12px;color:var(--ink-soft);}
-  .icon{width:20px;height:20px;flex-shrink:0;}
+/* Day hero: date nav + week trail + stats in one dark panel */
+.dayhero { background: var(--hero-bg); color: var(--hero-ink); border-radius: 22px; padding: 16px 14px 14px; margin-bottom: 16px; box-shadow: var(--shadow); }
+.datenav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+.datenav button { width: 38px; height: 38px; flex-shrink: 0; border-radius: 12px; border: 1px solid var(--hero-line); background: none; color: var(--hero-ink); font-size: 18px; display: grid; place-items: center; }
+.datenav button:hover { background: var(--hero-line); }
+.datenav .label { text-align: center; flex: 1; min-width: 0; }
+.datenav .label .day { font-family: var(--f-display); font-size: 26px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+.datenav .label .sub { font-size: 11px; color: var(--hero-soft); font-family: var(--f-mono); margin-top: 2px; }
+.datenav .label .sub .today { color: var(--hero-bg); background: var(--sport); border-radius: 999px; padding: 1px 7px; margin-left: 4px; font-weight: 600; }
 
-  .entry{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);}
-  .entry:last-child{border-bottom:none;}
-  .entry .swatch{width:8px;height:8px;border-radius:50%;background:var(--study);flex-shrink:0;}
-  .status-badge{border:none;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:.02em;padding:5px 8px;border-radius:20px;flex-shrink:0;white-space:nowrap;}
-  .status-badge.status-todo{background:var(--line);color:var(--ink-soft);}
-  .status-badge.status-inprogress{background:var(--sport-soft);color:var(--sport-deep);}
-  .status-badge.status-done{background:var(--study-soft);color:var(--study);}
-  .chip.study.status-todo{background:var(--line);color:var(--ink-soft);}
-  .chip.study.status-inprogress{background:var(--sport-soft);color:var(--sport-deep);}
-  .chip.study.status-done{background:var(--study-soft);color:var(--study);}
-  .chip .clicktext{cursor:pointer;}
-  .entry .swatch.evt{background:var(--event);}
-  .entry .info{flex:1;min-width:0;}
-  .entry .info .subj{font-weight:600;font-size:14px;}
-  .entry .info .topic{font-size:12px;color:var(--ink-soft);}
-  .entry .mins{font-family:'IBM Plex Mono', monospace;font-size:12px;color:var(--study);background:var(--study-soft);padding:3px 8px;border-radius:20px;white-space:nowrap;}
-  .entry .mins.evt{color:var(--event);background:var(--event-soft);}
-  .entry .del{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:16px;padding:2px 4px;}
-  .entry .edit{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:13px;padding:2px 4px;}
-  .edit-form{display:flex;flex-wrap:wrap;gap:8px;padding:10px 0;border-bottom:1px solid var(--line);}
-  .edit-form input{font-family:'IBM Plex Sans', sans-serif;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;background:#fff;}
-  .edit-form input[name="etitle"]{flex:1 1 120px;}
-  .edit-form input[name="enote"]{flex:2 1 140px;}
-  .edit-form input[name="etime"]{width:70px;flex:0 0 70px;}
-  .edit-form .save{background:var(--event);color:#fff;border:none;border-radius:9px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;}
-  .edit-form .cancel{background:none;border:1px solid var(--line);color:var(--ink-soft);border-radius:9px;padding:8px 12px;font-size:12px;cursor:pointer;}
-  .empty-note{color:var(--ink-soft);font-size:13px;padding:6px 0 10px;}
+.trail { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.trail-dot { display: flex; flex-direction: column; align-items: center; gap: 6px; border: 1px solid transparent; background: none; padding: 8px 0 7px; border-radius: 12px; color: var(--hero-soft); }
+.trail-dot:hover { background: rgba(255, 255, 255, .05); }
+.trail-dot .wk { font-family: var(--f-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .04em; }
+.trail-dot .num { font-family: var(--f-display); font-size: 16px; font-weight: 700; color: var(--hero-ink); line-height: 1; }
+.trail-dot .pips { display: flex; gap: 3px; height: 6px; }
+.trail-dot .pip { width: 6px; height: 6px; border-radius: 50%; background: var(--hero-line); }
+.trail-dot .pip.study { background: var(--study); }
+.trail-dot .pip.sport { background: var(--sport); }
+.trail-dot .pip.evt { background: var(--event); }
+.trail-dot.selected { background: var(--hero-ink); color: var(--hero-bg); }
+.trail-dot.selected .num { color: var(--hero-bg); }
+.trail-dot.istoday:not(.selected) { border-color: var(--hero-line); }
+.trail-dot.istoday .wk { font-weight: 600; }
 
-  .addform{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
-  .addform input{font-family:'IBM Plex Sans', sans-serif;border:1px solid var(--line);border-radius:9px;padding:9px 10px;font-size:13px;background:#fff;}
-  .addform input[name="subject"],.addform input[name="title"]{flex:1 1 120px;}
-  .addform input[name="topic"],.addform input[name="note"]{flex:2 1 140px;}
-  .addform input[name="minutes"],.addform input[name="time"]{width:70px;flex:0 0 70px;}
-  .addform button{background:var(--study);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;}
-  .addform.event button{background:var(--event);}
-  .addform button:active{transform:scale(0.98);}
-  .input-error{border-color:#C0392B !important;box-shadow:0 0 0 2px rgba(192,57,43,0.15);animation:shake .25s;}
-  @keyframes shake{0%,100%{transform:translateX(0);}25%{transform:translateX(-3px);}75%{transform:translateX(3px);}}
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--hero-line); }
+.stat { text-align: left; padding: 0 4px; }
+.stat .num { font-family: var(--f-display); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; display: flex; align-items: baseline; gap: 4px; }
+.stat .num small { font-family: var(--f-mono); font-size: 10px; font-weight: 400; color: var(--hero-soft); }
+.stat .lbl { font-size: 10.5px; color: var(--hero-soft); display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+.stat .lbl::before { content: ''; width: 7px; height: 7px; border-radius: 2px; background: currentColor; }
+.stat.study .lbl::before { background: var(--study); }
+.stat.sport .lbl::before { background: var(--sport); }
+.stat.evt .lbl::before { background: var(--event); }
+/* Week page shows stats outside the hero */
+.stats.standalone { background: var(--hero-bg); color: var(--hero-ink); border: none; border-radius: var(--radius); padding: 14px; margin: 0 0 14px; }
 
-  .manage-toggle{background:none;border:none;color:var(--ink-soft);font-size:11px;font-family:'IBM Plex Mono',monospace;cursor:pointer;text-decoration:underline;padding:0;}
-  .subject-panel{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);}
-  .subject-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 6px 4px 10px;border-radius:20px;background:var(--study-soft);color:var(--study);margin:0 6px 6px 0;}
-  .subject-chip .x{cursor:pointer;font-weight:700;background:none;border:none;color:var(--study);font-size:13px;line-height:1;padding:2px;}
-  .subject-addrow{display:flex;gap:8px;margin-top:6px;}
-  .subject-addrow input{flex:1;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;font-family:'IBM Plex Sans',sans-serif;}
-  .subject-addrow button{background:var(--study);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;}
+/* Cards */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.card-title { display: flex; align-items: center; gap: 10px; }
+.card-head h2 { font-size: 18px; font-weight: 700; }
+.card-head .total { font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft); background: var(--surface-2); border: 1px solid var(--line); padding: 4px 9px; border-radius: 999px; white-space: nowrap; }
+.icon-tile { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; flex-shrink: 0; }
+.icon-tile.study { background: var(--study-soft); color: var(--study); }
+.icon-tile.sport { background: var(--sport-soft); color: var(--sport); }
+.icon-tile.evt { background: var(--event-soft); color: var(--event); }
+.icon { width: 19px; height: 19px; flex-shrink: 0; }
+.hint { font-size: 11.5px; color: var(--ink-faint); margin: -4px 0 8px; }
 
-  .card.sport{border-color:var(--sport-soft);}
-  .switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
-  .switch-label{font-size:14px;font-weight:500;}
-  .switch{position:relative;width:44px;height:26px;background:var(--line);border-radius:20px;cursor:pointer;border:none;flex-shrink:0;}
-  .switch.on{background:var(--sport);}
-  .switch .knob{position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;transition:left 0.15s ease;}
-  .switch.on .knob{left:21px;}
-  .switch.small{width:36px;height:20px;}
-  .switch.small .knob{width:14px;height:14px;top:3px;left:3px;}
-  .switch.small.on .knob{left:19px;}
-  .sport-detail{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px;}
-  .sport-detail .row{display:flex;gap:8px;align-items:center;}
-  .sport-detail label{font-size:12px;color:var(--ink-soft);width:70px;flex-shrink:0;}
-  .sport-detail input{flex:1;font-family:'IBM Plex Sans', sans-serif;border:1px solid var(--line);border-radius:9px;padding:8px 10px;font-size:13px;}
-  .sport-detail input[name="sportmin"]{flex:0 0 70px;}
+.entry { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.entry:last-child { border-bottom: none; }
+.entry .swatch { width: 4px; align-self: stretch; border-radius: 4px; background: var(--study); flex-shrink: 0; }
+.entry .swatch.sport { background: var(--sport); }
+.entry .swatch.evt { background: var(--event); }
+.status-badge { border: 1px solid transparent; font-family: var(--f-mono); font-size: 10px; font-weight: 500; letter-spacing: .01em; padding: 5px 9px 5px 7px; border-radius: 999px; flex-shrink: 0; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; }
+.status-badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid currentColor; }
+.status-badge.status-todo { background: var(--surface-2); border-color: var(--line); color: var(--ink-soft); }
+.status-badge.status-inprogress { background: var(--warn-soft); color: var(--warn); }
+.status-badge.status-inprogress::before { background: linear-gradient(90deg, currentColor 50%, transparent 50%); }
+.status-badge.status-done { background: var(--sport-soft); color: var(--sport-deep); }
+.status-badge.status-done::before { background: currentColor; }
+.entry .info { flex: 1; min-width: 0; }
+.entry .info .subj { font-weight: 600; font-size: 14.5px; }
+.entry .info .subj.done { text-decoration: line-through; opacity: .55; }
+.entry .info .topic { font-size: 12.5px; color: var(--ink-soft); overflow-wrap: anywhere; }
+.entry .mins { font-family: var(--f-mono); font-size: 12px; font-weight: 500; color: var(--study); background: var(--study-soft); padding: 4px 9px; border-radius: 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.entry .mins.sport { color: var(--sport-deep); background: var(--sport-soft); }
+.entry .mins.evt { color: var(--event); background: var(--event-soft); }
+.entry .del, .entry .edit { background: none; border: none; color: var(--ink-faint); width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-size: 16px; padding: 0; flex-shrink: 0; }
+.entry .edit { font-size: 13px; }
+.entry .del:hover { background: var(--danger-soft); color: var(--danger); }
+.entry .edit:hover { background: var(--surface-2); color: var(--ink); }
 
-  .stats{display:flex;gap:10px;margin-bottom:14px;}
-  .stat{flex:1;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:10px 8px;text-align:center;}
-  .stat .num{font-family:'IBM Plex Mono', monospace;font-size:18px;font-weight:600;}
-  .stat .lbl{font-size:9.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:0.03em;}
+.field, .edit-form input, .addform input, .addform select, .subject-addrow input, .quickrow select, .quickrow input, .auth-card input {
+  border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 9px 11px; font-size: 13.5px; background: var(--surface-2); min-width: 0;
+}
+.edit-form input:focus, .addform input:focus, .addform select:focus, .subject-addrow input:focus, .quickrow select:focus, .quickrow input:focus, .auth-card input:focus {
+  outline: none; border-color: var(--study); background: var(--surface); box-shadow: 0 0 0 3px var(--study-soft);
+}
 
-  .hist-toggle{display:block;width:100%;text-align:center;background:none;border:1px dashed var(--line);border-radius:12px;padding:10px;color:var(--ink-soft);font-size:12px;font-family:'IBM Plex Mono', monospace;cursor:pointer;margin-bottom:14px;}
+.edit-form { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.edit-form input { flex: 1 1 120px; }
+.btn, .edit-form .save, .addform button, .subject-addrow button, .auth-submit { background: var(--ink); color: var(--bg); border: none; border-radius: var(--radius-sm); padding: 9px 16px; font-size: 13px; font-weight: 700; }
+.edit-form .save { background: var(--event); color: var(--on-accent); }
+.edit-form .cancel { background: none; border: 1px solid var(--line-strong); color: var(--ink-soft); border-radius: var(--radius-sm); padding: 8px 12px; font-size: 12.5px; }
+.empty-note { color: var(--ink-faint); font-size: 13px; padding: 12px; margin-bottom: 4px; text-align: center; border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); }
 
-  .hist-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);cursor:pointer;font-size:13px;}
-  .hist-row:last-child{border-bottom:none;}
-  .hist-row .d{width:70px;flex-shrink:0;color:var(--ink-soft);font-family:'IBM Plex Mono', monospace;font-size:11px;}
-  .hist-row .badges{display:flex;gap:5px;flex-wrap:wrap;}
-  .hist-row .badge{font-size:10px;padding:2px 7px;border-radius:20px;font-family:'IBM Plex Mono', monospace;}
-  .hist-row .badge.study{background:var(--study-soft);color:var(--study);}
-  .hist-row .badge.sport{background:var(--sport-soft);color:var(--sport-deep);}
-  .hist-row .badge.event{background:var(--event-soft);color:var(--event);}
+.addform { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.addform input, .addform select { flex: 2 1 140px; }
+.addform select { flex: 1 1 120px; }
+.addform input[type="number"] { flex: 0 0 64px; }
+.addform button { background: var(--study); color: var(--on-accent); }
+.addform.sport button { background: var(--sport); }
+.addform.event button { background: var(--event); }
 
-  .note{font-size:11px;color:var(--ink-soft);text-align:center;margin-top:20px;line-height:1.5;}
-  .loading{text-align:center;padding:40px 0;color:var(--ink-soft);font-size:13px;}
+.manage-toggle { background: none; border: none; color: var(--ink-soft); font-size: 12px; font-weight: 600; padding: 0; margin-top: 12px; display: inline-flex; gap: 6px; align-items: center; }
+.manage-toggle:hover { color: var(--study); }
+.subject-panel { margin-top: 10px; padding: 12px; background: var(--surface-2); border-radius: var(--radius-sm); }
+.subject-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; padding: 4px 4px 4px 11px; border-radius: 999px; background: var(--study-soft); color: var(--study); margin: 0 6px 6px 0; }
+.subject-chip .x { font-weight: 700; background: none; border: none; color: inherit; font-size: 14px; line-height: 1; width: 20px; height: 20px; border-radius: 50%; padding: 0; }
+.subject-chip .x:hover { background: var(--study); color: var(--on-accent); }
+.subject-addrow { display: flex; gap: 8px; margin-top: 6px; }
+.subject-addrow input { flex: 1; background: var(--surface); }
+.subject-addrow button { background: var(--study); color: var(--on-accent); }
 
-  /* week view */
-  .weeknav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-  .weeknav button{background:var(--paper);border:1px solid var(--line);border-radius:9px;padding:6px 12px;font-size:14px;cursor:pointer;}
-  .weeknav .rng{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink-soft);}
-  .weekcard{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;}
-  .weekcard.today{border-color:var(--ink);}
-  .weekcard-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;}
-  .weekcard-head .wd{font-family:'Fraunces',serif;font-weight:600;font-size:14px;}
-  .weekcard-head .wd .datep{font-family:'IBM Plex Mono',monospace;font-weight:400;font-size:11px;color:var(--ink-soft);margin-left:6px;}
-  .weekcard-head .goto{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:11px;font-family:'IBM Plex Mono',monospace;}
-  .sectionlbl{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin:8px 0 5px;}
-  .chiprow{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px;}
-  .chip{display:flex;align-items:center;gap:5px;font-size:11px;padding:4px 9px;border-radius:20px;font-family:'IBM Plex Mono',monospace;}
-  .chip.study{background:var(--study-soft);color:var(--study);}
-  .chip.sport{background:var(--sport-soft);color:var(--sport-deep);}
-  .quickrow select{border:1px solid var(--line);border-radius:8px;padding:6px 6px;font-size:12px;font-family:'IBM Plex Sans',sans-serif;background:#fff;flex:1;min-width:0;}
-  .quickrow.sport select{flex:0 0 78px;}
-  .quickrow.sport button{background:var(--sport);}
-  .chip.event{background:var(--event-soft);color:var(--event);}
-  .chip .x{cursor:pointer;font-weight:700;margin-left:2px;}
-  .quickrow{display:flex;gap:6px;margin-bottom:8px;}
-  .quickrow input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:12px;font-family:'IBM Plex Sans',sans-serif;}
-  .quickrow input.small{flex:0 0 46px;}
-  .quickrow button{flex:0 0 auto;background:var(--study);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;}
-  .quickrow.event button{background:var(--event);}
-  .weekcard .trainrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--line);margin-top:2px;}
-  .weekcard .trainrow .lbl{font-size:12px;color:var(--ink-soft);}
-  .weekcard .trainrow .right{display:flex;align-items:center;gap:6px;}
-  .weekcard .trainrow input.mininput{width:46px;border:1px solid var(--line);border-radius:8px;padding:5px 6px;font-size:12px;}
+.note { font-size: 12px; color: var(--ink-faint); text-align: center; margin-top: 22px; line-height: 1.55; text-wrap: balance; }
+
+/* Week view */
+.weeknav { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+.weeknav button { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.weeknav button:hover { color: var(--ink); border-color: var(--line-strong); }
+.weeknav .rng { font-family: var(--f-display); font-weight: 700; font-size: 17px; letter-spacing: -0.02em; }
+.weekcard { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; display: grid; grid-template-columns: 46px 1fr; gap: 0 12px; }
+.weekcard.today { border-color: var(--ink); box-shadow: var(--shadow); }
+.weekcard .datecol { text-align: center; padding-top: 2px; }
+.weekcard .datecol .dn { font-family: var(--f-display); font-size: 24px; font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+.weekcard .datecol .dw { font-family: var(--f-mono); font-size: 10px; text-transform: uppercase; color: var(--ink-soft); margin-top: 3px; }
+.weekcard.today .datecol .dn { color: var(--study); }
+.weekcard .body { min-width: 0; }
+.weekcard-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+.weekcard-head .wd { font-weight: 700; font-size: 14px; }
+.weekcard-head .datep { font-family: var(--f-mono); font-weight: 400; font-size: 11px; color: var(--ink-soft); margin-left: 6px; }
+.weekcard-head .goto { background: none; border: none; color: var(--study); font-size: 12px; font-weight: 600; padding: 4px 0; }
+.sectionlbl { font-size: 10px; font-family: var(--f-mono); text-transform: uppercase; letter-spacing: .06em; color: var(--ink-faint); margin: 10px 0 6px; display: flex; align-items: center; gap: 6px; }
+.sectionlbl::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--study); }
+.sectionlbl.sport::before { background: var(--sport); }
+.sectionlbl.event::before { background: var(--event); }
+.chiprow { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; font-weight: 500; padding: 4px 4px 4px 10px; border-radius: 999px; font-family: var(--f-mono); }
+.chip.study { background: var(--study-soft); color: var(--study); }
+.chip.study.status-inprogress { background: var(--warn-soft); color: var(--warn); }
+.chip.study.status-done { background: var(--sport-soft); color: var(--sport-deep); }
+.chip.study.status-done .clicktext { text-decoration: line-through; }
+.chip.sport { background: var(--sport-soft); color: var(--sport-deep); }
+.chip.event { background: var(--event-soft); color: var(--event); }
+.chip .x { background: none; border: none; color: inherit; font-weight: 700; width: 18px; height: 18px; border-radius: 50%; padding: 0; line-height: 1; opacity: .7; }
+.chip .x:hover { opacity: 1; background: var(--surface); }
+.chip .clicktext { cursor: pointer; background: none; border: none; color: inherit; font: inherit; padding: 0; }
+.quickrow { display: flex; gap: 6px; margin-bottom: 4px; }
+.quickrow select, .quickrow input { padding: 6px 9px; font-size: 12.5px; border-radius: 9px; flex: 1; }
+.quickrow input.small { flex: 0 0 52px; }
+.quickrow button { flex: 0 0 34px; background: var(--study); color: var(--on-accent); border: none; border-radius: 9px; font-size: 16px; font-weight: 700; padding: 0; }
+.quickrow.sport button { background: var(--sport); }
+.quickrow.event button { background: var(--event); }
+.loading { text-align: center; padding: 48px 0; color: var(--ink-soft); font-size: 13px; font-family: var(--f-mono); }
+
+/* Auth */
+.auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--bg); padding: 20px 16px; }
+.auth-card { background: var(--surface); border: 1px solid var(--line); border-radius: 24px; padding: 32px 26px; width: 100%; max-width: 390px; box-shadow: var(--shadow); }
+.auth-card h1 { font-size: 32px; font-weight: 800; margin-bottom: 4px; }
+.auth-sub { font-size: 14px; color: var(--ink-soft); margin: 0 0 24px; }
+.auth-tabs { display: flex; gap: 4px; margin-bottom: 20px; padding: 4px; background: var(--surface-2); border-radius: 14px; }
+.auth-tabs button { flex: 1; padding: 9px; border-radius: 10px; border: none; background: none; font-weight: 600; font-size: 13px; color: var(--ink-soft); }
+.auth-tabs button.active { background: var(--ink); color: var(--bg); }
+.auth-card form { display: flex; flex-direction: column; gap: 10px; }
+.auth-card input { padding: 12px 14px; font-size: 14px; }
+.auth-error { font-size: 12.5px; color: var(--danger); background: var(--danger-soft); border-radius: 10px; padding: 9px 12px; }
+.auth-submit { padding: 13px; font-size: 14px; margin-top: 4px; }
+.auth-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* Sadece index.html (Firebase sürümü) */
+.addform input[name="minutes"], .addform input[name="time"] { flex: 0 0 72px; }
+.addform input[name="topic"], .addform input[name="note"] { flex: 2 1 140px; }
+.edit-form input[name="etime"] { flex: 0 0 72px; }
+.input-error { border-color: var(--danger) !important; box-shadow: 0 0 0 3px var(--danger-soft) !important; animation: shake .25s; }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.hist-toggle { display: block; width: 100%; text-align: center; background: none; border: 1px dashed var(--line-strong); border-radius: var(--radius-sm); padding: 11px; color: var(--ink-soft); font-size: 12.5px; font-weight: 600; margin-bottom: 14px; }
+.hist-toggle:hover { color: var(--ink); border-color: var(--ink-soft); }
+.hist-row { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-bottom: 1px solid var(--line); cursor: pointer; border-radius: 8px; }
+.hist-row:last-child { border-bottom: none; }
+.hist-row:hover { background: var(--surface-2); }
+.hist-row .d { width: 62px; flex-shrink: 0; color: var(--ink-soft); font-family: var(--f-mono); font-size: 11.5px; }
+.hist-row .badges { display: flex; gap: 5px; flex-wrap: wrap; }
+.hist-row .badge { font-size: 10.5px; padding: 3px 8px; border-radius: 999px; font-family: var(--f-mono); }
+.hist-row .badge.study { background: var(--study-soft); color: var(--study); }
+.hist-row .badge.sport { background: var(--sport-soft); color: var(--sport-deep); }
+.hist-row .badge.event { background: var(--event-soft); color: var(--event); }
+.err-box { text-align: left; white-space: pre-wrap; font-family: var(--f-mono); font-size: 12px; color: var(--danger); background: var(--danger-soft); border-radius: var(--radius-sm); padding: 14px; margin-top: 40px; }
 </style>
 </head>
 <body>
 <div class="wrap" id="app"><div class="loading">Yükleniyor…</div></div>
 
 <script>
-const STUDY_ICON = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#2F6F4F" stroke-width="1.8"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5v-13Z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z"/></svg>`;
-const SPORT_ICON = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#8A5A15" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3c2.5 2.5 2.5 15.5 0 18"/><path d="M4.5 8c4 2 11 2 15 0"/><path d="M4.5 16c4-2 11-2 15 0"/></svg>`;
-const EVENT_ICON = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="#6E58A8" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>`;
+const STUDY_ICON = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5.5C4 4.7 4.7 4 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5v-13Z"/><path d="M20 5.5c0-.8-.7-1.5-1.5-1.5H13v16h5.5a1.5 1.5 0 0 0 1.5-1.5v-13Z"/></svg>`;
+const SPORT_ICON = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 3c2.5 2.5 2.5 15.5 0 18"/><path d="M4.5 8c4 2 11 2 15 0"/><path d="M4.5 16c4-2 11-2 15 0"/></svg>`;
+const EVENT_ICON = `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>`;
 
 const WEEKDAYS = ['Pzt','Sal','Çar','Per','Cum','Cmt','Paz'];
 const WEEKDAYS_FULL = ['Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi','Pazar'];
@@ -357,7 +498,7 @@ async function init(){
     await firebase.auth().signInAnonymously();
   }catch(e){
     console.error('auth failed', e);
-    document.getElementById('app').innerHTML = '<div class="loading" style="text-align:left;white-space:pre-wrap;font-family:monospace;font-size:12px;">GİRİŞ HATASI:<br>Kod: '+(e.code||'yok')+'<br>Mesaj: '+(e.message||e)+'</div>';
+    document.getElementById('app').innerHTML = '<div class="err-box">GİRİŞ HATASI:<br>Kod: '+(e.code||'yok')+'<br>Mesaj: '+(e.message||e)+'</div>';
     return;
   }
   try{
@@ -367,7 +508,7 @@ async function init(){
     render();
   }catch(e){
     console.error('data load failed', e);
-    document.getElementById('app').innerHTML = '<div class="loading" style="text-align:left;white-space:pre-wrap;font-family:monospace;font-size:12px;">VERİ OKUMA HATASI:<br>Kod: '+(e.code||'yok')+'<br>Mesaj: '+(e.message||e)+'</div>';
+    document.getElementById('app').innerHTML = '<div class="err-box">VERİ OKUMA HATASI:<br>Kod: '+(e.code||'yok')+'<br>Mesaj: '+(e.message||e)+'</div>';
   }
 }
 
@@ -375,7 +516,7 @@ async function init(){
 function render(){
   const app = document.getElementById('app');
   app.innerHTML = `
-    <header class="top"><h1>!PlanMeee!</h1><span class="tag">Ela Ada İşler</span></header>
+    <header class="top"><h1><span class="mark">P</span>PlanMee</h1><span class="tag"><span class="av">E</span>Ela Ada İşler</span></header>
     <div class="viewtabs">
       <button class="${state.view==='day'?'active':''}" onclick="showDay()">Gün</button>
       <button class="${state.view==='week'?'active':''}" onclick="showWeek()">Hafta Planı</button>
@@ -393,13 +534,11 @@ function renderTrail(d){
   for(let i=0;i<7;i++){
     const wd = addDays(mon,i); const wkey = dkey(wd); const s = summaryFor(wkey);
     const hasStudy = s && s.studyMinutes>0, hasSport = s && s.trainingDone, hasEvt = s && s.eventCount>0;
-    let cls='dot';
-    if(hasStudy && hasSport) cls+=' both'; else if(hasStudy) cls+=' study'; else if(hasSport) cls+=' sport';
     const selCls = sameDay(wd,d) ? 'selected' : '';
     const todayCls = sameDay(wd,new Date()) ? 'istoday' : '';
-    const evtCls = hasEvt ? 'evt' : '';
-    html += `<button class="trail-dot ${selCls} ${todayCls} ${evtCls}" onclick="goToDate(new Date(${wd.getFullYear()},${wd.getMonth()},${wd.getDate()}))">
-      <span class="wk">${WEEKDAYS[i]}</span><span class="${cls}"></span></button>`;
+        html += `<button class="trail-dot ${selCls} ${todayCls}" onclick="goToDate(new Date(${wd.getFullYear()},${wd.getMonth()},${wd.getDate()}))">
+      <span class="wk">${WEEKDAYS[i]}</span><span class="num">${wd.getDate()}</span>
+      <span class="pips"><span class="pip${hasStudy?' study':''}"></span><span class="pip${hasSport?' sport':''}"></span><span class="pip${hasEvt?' evt':''}"></span></span></button>`;
   }
   return html;
 }
@@ -407,6 +546,13 @@ function weekStats(d){
   const mon = mondayOf(d); let ws=0, wt=0, we=0;
   for(let i=0;i<7;i++){ const s=summaryFor(dkey(addDays(mon,i))); if(s){ ws+=s.studyMinutes; if(s.trainingDone) wt++; we+=s.eventCount||0; } }
   return {ws,wt,we};
+}
+function statsHtml(ws,wt,we,standalone){
+  return `<div class="stats${standalone?' standalone':''}">
+    <div class="stat study"><div class="num">${ws}<small>dk</small></div><div class="lbl">Haftalık ders</div></div>
+    <div class="stat sport"><div class="num">${wt}<small>/7 gün</small></div><div class="lbl">Antrenman</div></div>
+    <div class="stat evt"><div class="num">${we}</div><div class="lbl">Etkinlik</div></div>
+  </div>`;
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function flashError(el){
@@ -434,13 +580,13 @@ function renderDayHtml(){
     ? `<div class="empty-note">Bu gün için henüz ders kaydı yok.</div>`
     : data.studyEntries.map(e=>{
         const st = e.status||'todo';
-        return `<div class="entry"><button class="status-badge status-${st}" onclick="cycleStatus('${key}', ${JSON.stringify(e.id)})">${STATUS_SHORT[st]}</button><div class="info"><div class="subj" style="${st==='done'?'text-decoration:line-through;opacity:.6;':''}">${escapeHtml(e.subject)}</div>${e.topic?`<div class="topic">${escapeHtml(e.topic)}</div>`:''}</div><span class="mins">${e.minutes} dk</span><button class="del" onclick="delEntry('${key}', ${JSON.stringify(e.id)})">×</button></div>`;
+        return `<div class="entry"><button class="status-badge status-${st}" onclick="cycleStatus('${key}', ${JSON.stringify(e.id)})">${STATUS_SHORT[st]}</button><div class="info"><div class="subj${st==='done'?' done':''}">${escapeHtml(e.subject)}</div>${e.topic?`<div class="topic">${escapeHtml(e.topic)}</div>`:''}</div><span class="mins">${e.minutes} dk</span><button class="del" aria-label="Sil" onclick="delEntry('${key}', ${JSON.stringify(e.id)})">×</button></div>`;
       }).join('');
 
   const trainingMinutes = data.training.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
   let trainingHtml = data.training.length===0
     ? `<div class="empty-note">Bu gün için henüz antrenman kaydı yok.</div>`
-    : data.training.map(e=>`<div class="entry"><span class="swatch" style="background:var(--sport)"></span><div class="info"><div class="subj">${escapeHtml(e.type)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div><span class="mins" style="color:var(--sport-deep);background:var(--sport-soft)">${formatDuration(e.minutes)}</span><button class="del" onclick="delTraining('${key}', ${JSON.stringify(e.id)})">×</button></div>`).join('');
+    : data.training.map(e=>`<div class="entry"><span class="swatch sport"></span><div class="info"><div class="subj">${escapeHtml(e.type)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div><span class="mins sport">${formatDuration(e.minutes)}</span><button class="del" aria-label="Sil" onclick="delTraining('${key}', ${JSON.stringify(e.id)})">×</button></div>`).join('');
 
   const events = data.events||[];
   let eventsHtml = events.length===0
@@ -455,7 +601,7 @@ function renderDayHtml(){
             <button type="button" class="cancel" onclick="cancelEditEvent()">İptal</button>
           </form>`;
         }
-        return `<div class="entry"><span class="swatch evt"></span><div class="info"><div class="subj">${escapeHtml(e.title)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div>${e.time?`<span class="mins evt">${escapeHtml(e.time)}</span>`:''}<button class="edit" onclick="startEditEvent(${JSON.stringify(e.id)})">✎</button><button class="del" onclick="delEvent('${key}', ${JSON.stringify(e.id)})">×</button></div>`;
+        return `<div class="entry"><span class="swatch evt"></span><div class="info"><div class="subj">${escapeHtml(e.title)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div>${e.time?`<span class="mins evt">${escapeHtml(e.time)}</span>`:''}<button class="edit" aria-label="Düzenle" onclick="startEditEvent(${JSON.stringify(e.id)})">✎</button><button class="del" aria-label="Sil" onclick="delEvent('${key}', ${JSON.stringify(e.id)})">×</button></div>`;
       }).join('');
 
   let historyHtml = '';
@@ -474,23 +620,21 @@ function renderDayHtml(){
   }
 
   return `
-    <div class="datenav">
-      <button onclick="goToDate(addDays(state.currentDate,-1))">‹</button>
-      <div class="label"><div class="day">${WEEKDAYS_FULL[(d.getDay()+6)%7]}</div><div class="sub">${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}${isToday?' · bugün':''}</div></div>
-      <button onclick="goToDate(addDays(state.currentDate,1))">›</button>
-    </div>
-    <div class="trail">${renderTrail(d)}</div>
-    <div class="stats">
-      <div class="stat"><div class="num">${ws}</div><div class="lbl">Hafta Dk Ders</div></div>
-      <div class="stat"><div class="num">${wt}</div><div class="lbl">Hafta Antrenman</div></div>
-      <div class="stat"><div class="num">${we}</div><div class="lbl">Hafta Etkinlik</div></div>
-    </div>
+    <section class="dayhero">
+      <div class="datenav">
+        <button aria-label="Önceki gün" onclick="goToDate(addDays(state.currentDate,-1))">‹</button>
+        <div class="label"><div class="day">${WEEKDAYS_FULL[(d.getDay()+6)%7]}</div><div class="sub">${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}${isToday?'<span class="today">bugün</span>':''}</div></div>
+        <button aria-label="Sonraki gün" onclick="goToDate(addDays(state.currentDate,1))">›</button>
+      </div>
+      <div class="trail">${renderTrail(d)}</div>
+      ${statsHtml(ws,wt,we,false)}
+    </section>
     <div class="card">
-      <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${STUDY_ICON}<h2>Çalışma Planı</h2></div>${totalMinutes>0?`<span class="total">${totalMinutes} dk toplam</span>`:''}</div>
-      <div style="font-size:11px;color:var(--ink-soft);margin-bottom:8px;">Rozete dokunarak durumu değiştirin: Yapılacak → Devam Ediyor → Tamamlandı</div>
+      <div class="card-head"><div class="card-title"><span class="icon-tile study">${STUDY_ICON}</span><h2>Çalışma Planı</h2></div>${totalMinutes>0?`<span class="total">${totalMinutes} dk toplam</span>`:''}</div>
+      <div class="hint">Rozete dokunarak durumu değiştirin: Yapılacak → Devam Ediyor → Tamamlandı</div>
       ${entriesHtml}
       <form class="addform" onsubmit="return handleAdd(event,'${key}')">
-        <select name="subject" style="flex:1 1 120px;font-family:'IBM Plex Sans', sans-serif;border:1px solid var(--line);border-radius:9px;padding:9px 10px;font-size:13px;background:#fff;">
+        <select name="subject">
           ${state.subjects.length===0?`<option value="">Önce ders ekleyin</option>`:state.subjects.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('')}
         </select>
         <input name="topic" placeholder="Konu (opsiyonel)" autocomplete="off">
@@ -509,10 +653,10 @@ function renderDayHtml(){
       `:''}
     </div>
     <div class="card sport">
-      <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${SPORT_ICON}<h2>Antrenman</h2></div>${trainingMinutes>0?`<span class="total">${formatDuration(trainingMinutes)} toplam</span>`:''}</div>
+      <div class="card-head"><div class="card-title"><span class="icon-tile sport">${SPORT_ICON}</span><h2>Antrenman</h2></div>${trainingMinutes>0?`<span class="total">${formatDuration(trainingMinutes)} toplam</span>`:''}</div>
       ${trainingHtml}
-      <form class="addform" onsubmit="return handleAddTraining(event,'${key}')">
-        <select name="type" style="flex:1 1 100px;font-family:'IBM Plex Sans', sans-serif;border:1px solid var(--line);border-radius:9px;padding:9px 10px;font-size:13px;background:#fff;">
+      <form class="addform sport" onsubmit="return handleAddTraining(event,'${key}')">
+        <select name="type">
           <option value="Top">Top</option>
           <option value="Kuvvet">Kuvvet</option>
         </select>
@@ -522,7 +666,7 @@ function renderDayHtml(){
       </form>
     </div>
     <div class="card">
-      <div class="card-head"><div style="display:flex;align-items:center;gap:8px;">${EVENT_ICON}<h2>Etkinlikler</h2></div></div>
+      <div class="card-head"><div class="card-title"><span class="icon-tile evt">${EVENT_ICON}</span><h2>Etkinlikler</h2></div></div>
       ${eventsHtml}
       <form class="addform event" onsubmit="return handleAddEvent(event,'${key}')">
         <input name="title" placeholder="Etkinlik (ör. deneme sınavı)" autocomplete="off">
@@ -547,15 +691,17 @@ function renderWeekHtml(){
     const wd = addDays(mon,i), key = dkey(wd), data = getDay(key), isToday = sameDay(wd,new Date());
     const studyChips = data.studyEntries.map(e=>{
       const st = e.status||'todo';
-      return `<span class="chip study status-${st}"><span class="clicktext" onclick="cycleStatus('${key}',${JSON.stringify(e.id)})" style="${st==='done'?'text-decoration:line-through;':''}">${escapeHtml(e.subject)} · ${e.minutes}dk</span> <span class="x" onclick="delEntry('${key}',${JSON.stringify(e.id)})">×</span></span>`;
+      return `<span class="chip study status-${st}"><button type="button" class="clicktext" onclick="cycleStatus('${key}',${JSON.stringify(e.id)})">${escapeHtml(e.subject)} · ${e.minutes}dk</button><button type="button" class="x" aria-label="Sil" onclick="delEntry('${key}',${JSON.stringify(e.id)})">×</button></span>`;
     }).join('');
-    const eventChips = (data.events||[]).map(e=>`<span class="chip event">${escapeHtml(e.title)}${e.time?' · '+escapeHtml(e.time):''} <span class="x" onclick="delEvent('${key}',${JSON.stringify(e.id)})">×</span></span>`).join('');
-    const trainingChips = data.training.map(e=>`<span class="chip sport">${escapeHtml(e.type)} · ${formatDuration(e.minutes)} <span class="x" onclick="delTraining('${key}',${JSON.stringify(e.id)})">×</span></span>`).join('');
+    const eventChips = (data.events||[]).map(e=>`<span class="chip event">${escapeHtml(e.title)}${e.time?' · '+escapeHtml(e.time):''}<button type="button" class="x" aria-label="Sil" onclick="delEvent('${key}',${JSON.stringify(e.id)})">×</button></span>`).join('');
+    const trainingChips = data.training.map(e=>`<span class="chip sport">${escapeHtml(e.type)} · ${formatDuration(e.minutes)}<button type="button" class="x" aria-label="Sil" onclick="delTraining('${key}',${JSON.stringify(e.id)})">×</button></span>`).join('');
 
     cards += `
       <div class="weekcard ${isToday?'today':''}">
+        <div class="datecol"><div class="dn">${wd.getDate()}</div><div class="dw">${MONTHS[wd.getMonth()].slice(0,3)}</div></div>
+        <div class="body">
         <div class="weekcard-head">
-          <div class="wd">${WEEKDAYS_FULL[i]}<span class="datep">${wd.getDate()} ${MONTHS[wd.getMonth()].slice(0,3)}${isToday?' · bugün':''}</span></div>
+          <div class="wd">${WEEKDAYS_FULL[i]}${isToday?'<span class="datep">bugün</span>':''}</div>
           <button class="goto" onclick="goToDate(new Date(${wd.getFullYear()},${wd.getMonth()},${wd.getDate()}))">Güne git →</button>
         </div>
         <div class="sectionlbl">Ders</div>
@@ -565,34 +711,31 @@ function renderWeekHtml(){
           <input name="minutes" type="number" min="1" placeholder="dk" class="small">
           <button type="submit">+</button>
         </form>
-        <div class="sectionlbl">Antrenman</div>
+        <div class="sectionlbl sport">Antrenman</div>
         ${trainingChips?`<div class="chiprow">${trainingChips}</div>`:''}
         <form class="quickrow sport" onsubmit="return weekAddTraining(event,'${key}')">
           <select name="type"><option value="Top">Top</option><option value="Kuvvet">Kuvvet</option></select>
           <input name="minutes" type="number" min="1" placeholder="dk" class="small">
           <button type="submit">+</button>
         </form>
-        <div class="sectionlbl">Etkinlik</div>
+        <div class="sectionlbl event">Etkinlik</div>
         ${eventChips?`<div class="chiprow">${eventChips}</div>`:''}
         <form class="quickrow event" onsubmit="return weekAddEvent(event,'${key}')">
           <input name="title" placeholder="Etkinlik" autocomplete="off">
           <input name="time" placeholder="Saat" class="small">
           <button type="submit">+</button>
         </form>
+        </div>
       </div>`;
   }
 
   return `
     <div class="weeknav">
-      <button onclick="shiftWeek(-1)">‹ Önceki Hafta</button>
+      <button onclick="shiftWeek(-1)">‹ Önceki</button>
       <span class="rng">${rangeLabel}</span>
-      <button onclick="shiftWeek(1)">Sonraki Hafta ›</button>
+      <button onclick="shiftWeek(1)">Sonraki ›</button>
     </div>
-    <div class="stats">
-      <div class="stat"><div class="num">${ws}</div><div class="lbl">Dk Ders</div></div>
-      <div class="stat"><div class="num">${wt}</div><div class="lbl">Antrenman</div></div>
-      <div class="stat"><div class="num">${we}</div><div class="lbl">Etkinlik</div></div>
-    </div>
+    ${statsHtml(ws,wt,we,true)}
     ${cards}
     <div class="note">Bu görünümde önümüzdeki (veya geçmiş) günlere doğrudan ders, antrenman ve etkinlik girebilirsiniz. Girdiğiniz gün geldiğinde kayıtlar orada duruyor olacak — "Gün" sekmesinden o güne gidip detaylandırabilirsiniz.</div>
   `;
