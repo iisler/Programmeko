@@ -34,6 +34,27 @@ public class AuthController(UserManager<User> userManager, IConfiguration config
         return Ok(new AuthResponseDto(token, user.Email!, user.UserName!));
     }
 
+    // GEÇİCİ: Doğrulamasız şifre sıfırlama. E-postayı bilen herkes şifreyi değiştirebilir,
+    // bu yüzden yalnızca Auth:AllowDirectPasswordReset=true olan ortamda (Development) açık.
+    // E-posta doğrulamalı akış gelince kaldırılacak.
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
+    {
+        if (!config.GetValue<bool>("Auth:AllowDirectPasswordReset"))
+            return NotFound();
+
+        var user = await userManager.FindByEmailAsync(dto.Email);
+        if (user == null)
+            return BadRequest("Bu e-posta ile kayıtlı hesap bulunamadı");
+
+        var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await userManager.ResetPasswordAsync(user, resetToken, dto.NewPassword);
+        if (!result.Succeeded)
+            return BadRequest(result.Errors.Select(e => e.Description));
+
+        return Ok(new { message = "Şifre güncellendi" });
+    }
+
     private string CreateToken(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
