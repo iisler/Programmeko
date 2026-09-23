@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import client from '../api/client';
 import StatsBar from '../components/StatsBar';
 
+const WEEKDAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 const WEEKDAYS_FULL = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
 const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
@@ -21,13 +22,15 @@ function formatDuration(mins) {
   if (m === 0) return `${h} sa`;
   return `${h} sa ${m} dk`;
 }
+function readPref(k, def) { try { return localStorage.getItem(k) || def; } catch { return def; } }
+function writePref(k, v) { try { localStorage.setItem(k, v); } catch { /* yoksay */ } }
 
 const STATUS_ORDER = ['todo', 'inprogress', 'done'];
-const STATUS_SHORT = { todo: 'Yapılacak', inprogress: 'Devam', done: 'Tamam' };
 
 export default function WeekPage({ currentDate, setCurrentDate, weekSummaries, onDataChanged, subjects }) {
   const [weekDays, setWeekDays] = useState([]);
   const [weekStart, setWeekStart] = useState(() => mondayOf(currentDate));
+  const [mode, setMode] = useState(() => readPref('weekMode', 'table'));
 
   useEffect(() => { loadWeek(weekStart); }, [weekStart]);
 
@@ -47,6 +50,11 @@ export default function WeekPage({ currentDate, setCurrentDate, weekSummaries, o
     setWeekStart(newMon);
   }
 
+  function changeMode(m) {
+    setMode(m);
+    writePref('weekMode', m);
+  }
+
   const mon = weekStart;
   const rangeLabel = `${mon.getDate()} ${MONTHS[mon.getMonth()].slice(0, 3)} – ${addDays(mon, 6).getDate()} ${MONTHS[addDays(mon, 6).getMonth()].slice(0, 3)}`;
 
@@ -58,27 +66,231 @@ export default function WeekPage({ currentDate, setCurrentDate, weekSummaries, o
         <button onClick={() => shiftWeek(1)}>Sonraki ›</button>
       </div>
 
-      <StatsBar weekSummaries={weekSummaries} standalone />
+      <div className="weekbar">
+        <div className="modetoggle" role="group" aria-label="Görünüm">
+          <button className={mode === 'table' ? 'active' : ''} onClick={() => changeMode('table')}>Tablo</button>
+          <button className={mode === 'list' ? 'active' : ''} onClick={() => changeMode('list')}>Liste</button>
+        </div>
+      </div>
 
-      {weekDays.map(({ key, data }, i) => {
-        const date = addDays(weekStart, i);
-        const isToday = dkey(new Date()) === key;
-        return (
-          <WeekDayCard
-            key={key}
-            dateKey={key}
-            date={date}
-            dayIndex={i}
-            data={data}
-            isToday={isToday}
-            subjects={subjects}
-            onGoToDay={() => { setCurrentDate(date); }}
-            onRefresh={refresh}
-          />
-        );
-      })}
+      {mode === 'table' ? (
+        <WeekTable
+          weekStart={weekStart}
+          weekDays={weekDays}
+          subjects={subjects}
+          onGoToDay={setCurrentDate}
+          onRefresh={refresh}
+        />
+      ) : (
+        <>
+          <StatsBar weekSummaries={weekSummaries} standalone />
 
-      <div className="note">Buradan gelecek (veya geçmiş) günlere direkt ders, antrenman ve etkinlik girebilirsiniz.</div>
+          {weekDays.map(({ key, data }, i) => {
+            const date = addDays(weekStart, i);
+            const isToday = dkey(new Date()) === key;
+            return (
+              <WeekDayCard
+                key={key}
+                dateKey={key}
+                date={date}
+                dayIndex={i}
+                data={data}
+                isToday={isToday}
+                subjects={subjects}
+                onGoToDay={() => { setCurrentDate(date); }}
+                onRefresh={refresh}
+              />
+            );
+          })}
+
+          <div className="note">Buradan gelecek (veya geçmiş) günlere direkt ders, antrenman ve etkinlik girebilirsiniz.</div>
+        </>
+      )}
+    </>
+  );
+}
+
+function WeekTable({ weekStart, weekDays, subjects, onGoToDay, onRefresh }) {
+  const todayKey = dkey(new Date());
+  const keys = Array.from({ length: 7 }, (_, i) => dkey(addDays(weekStart, i)));
+  const defaultDay = keys.includes(todayKey) ? todayKey : keys[0];
+
+  const [kind, setKind] = useState('study');
+  const [form, setForm] = useState({ day: defaultDay, subject: '', minutes: '', type: 'Top', title: '', time: '' });
+  const [invalid, setInvalid] = useState(null);
+  const firstFieldRef = useRef(null);
+  const formRef = useRef(null);
+
+  // Hafta değişince seçili gün o haftaya ait değilse varsayılana dön
+  const day = keys.includes(form.day) ? form.day : defaultDay;
+
+  const set = k => e => { setForm(f => ({ ...f, [k]: e.target.value })); setInvalid(null); };
+
+  function prefill(key, k) {
+    setKind(k);
+    setForm(f => ({ ...f, day: key }));
+    setInvalid(null);
+    formRef.current?.scrollIntoView({ block: 'nearest' });
+    setTimeout(() => firstFieldRef.current?.focus(), 0);
+  }
+
+  async function submit(e) {
+    e.preventDefault();
+    const subject = form.subject || subjects[0];
+    if (kind === 'study') {
+      if (!subject) return setInvalid('subject');
+      if (!form.minutes) return setInvalid('minutes');
+      await client.post(`/days/${day}/entries`, { subject, topic: '', minutes: parseInt(form.minutes) });
+      setForm(f => ({ ...f, minutes: '' }));
+    } else if (kind === 'sport') {
+      if (!form.minutes) return setInvalid('minutes');
+      await client.post(`/days/${day}/training`, { type: form.type, minutes: parseInt(form.minutes), note: '' });
+      setForm(f => ({ ...f, minutes: '' }));
+    } else {
+      if (!form.title.trim()) return setInvalid('title');
+      await client.post(`/days/${day}/events`, { title: form.title.trim(), time: form.time.trim(), note: '' });
+      setForm(f => ({ ...f, title: '', time: '' }));
+    }
+    onRefresh();
+  }
+
+  async function cycleStatus(key, id, status) {
+    const next = STATUS_ORDER[(STATUS_ORDER.indexOf(status) + 1) % STATUS_ORDER.length];
+    await client.patch(`/days/${key}/entries/${id}/status`, { status: next });
+    onRefresh();
+  }
+  async function remove(key, kindPath, id) {
+    await client.delete(`/days/${key}/${kindPath}/${id}`);
+    onRefresh();
+  }
+
+  let studyTotal = 0, trainTotal = 0, trainDays = 0, eventTotal = 0;
+  for (const { data } of weekDays) {
+    studyTotal += data.studyEntries.reduce((s, e) => s + e.minutes, 0);
+    trainTotal += data.trainingEntries.reduce((s, e) => s + e.minutes, 0);
+    if (data.trainingEntries.length > 0) trainDays++;
+    eventTotal += data.events.length;
+  }
+
+  const err = f => (invalid === f ? ' input-error' : '');
+  const plus = (key, k) => (
+    <button type="button" className="plus" aria-label="Ekle" onClick={() => prefill(key, k)}>+</button>
+  );
+
+  return (
+    <>
+      <form className="wkadd" data-kind={kind} ref={formRef} onSubmit={submit}>
+        <select id="wk-day" aria-label="Gün" value={day} onChange={set('day')}>
+          {keys.map((k, i) => (
+            <option key={k} value={k}>{WEEKDAYS[i]} {addDays(weekStart, i).getDate()}</option>
+          ))}
+        </select>
+        <div className="kind" role="group" aria-label="Tür">
+          <button type="button" data-k="study" onClick={() => setKind('study')}>Ders</button>
+          <button type="button" data-k="sport" onClick={() => setKind('sport')}>Antrenman</button>
+          <button type="button" data-k="event" onClick={() => setKind('event')}>Etkinlik</button>
+        </div>
+
+        {kind === 'study' && (
+          <>
+            <select id="wk-subject" className={`grow${err('subject')}`} aria-label="Ders" value={form.subject || subjects[0] || ''} onChange={set('subject')}>
+              {subjects.length === 0 && <option value="">Önce ders ekleyin</option>}
+              {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <input id="wk-minutes" ref={firstFieldRef} type="number" min="1" placeholder="dk" className={`num${err('minutes')}`} aria-label="Dakika" value={form.minutes} onChange={set('minutes')} />
+          </>
+        )}
+        {kind === 'sport' && (
+          <>
+            <select id="wk-type" className="grow" aria-label="Antrenman türü" value={form.type} onChange={set('type')}>
+              <option value="Top">Top</option>
+              <option value="Kuvvet">Kuvvet</option>
+            </select>
+            <input id="wk-sminutes" ref={firstFieldRef} type="number" min="1" placeholder="dk" className={`num${err('minutes')}`} aria-label="Dakika" value={form.minutes} onChange={set('minutes')} />
+          </>
+        )}
+        {kind === 'event' && (
+          <>
+            <input id="wk-title" ref={firstFieldRef} placeholder="Etkinlik adı" className={`grow${err('title')}`} autoComplete="off" aria-label="Etkinlik" value={form.title} onChange={set('title')} />
+            <input id="wk-time" placeholder="Saat" className="num" autoComplete="off" aria-label="Saat" value={form.time} onChange={set('time')} />
+          </>
+        )}
+        <button type="submit" className="go">Ekle</button>
+      </form>
+
+      <div className="wktable-wrap">
+        <table className="wktable">
+          <colgroup><col className="c-day" /><col /><col /><col /></colgroup>
+          <thead>
+            <tr>
+              <th />
+              <th><span className="dotc" style={{ background: 'var(--study)' }} />Ders</th>
+              <th><span className="dotc" style={{ background: 'var(--sport)' }} />Antrenman</th>
+              <th><span className="dotc" style={{ background: 'var(--event)' }} />Etkinlik</th>
+            </tr>
+          </thead>
+          <tbody>
+            {weekDays.map(({ key, data }, i) => {
+              const date = addDays(weekStart, i);
+              return (
+                <tr key={key} className={`${key === todayKey ? 'today' : ''} ${i >= 5 ? 'weekend' : ''}`}>
+                  <th className="daycell" scope="row">
+                    <button title="Güne git" onClick={() => onGoToDay(date)}>
+                      <span className="dw">{WEEKDAYS[i]}</span>
+                      <span className="dn">{date.getDate()}</span>
+                    </button>
+                  </th>
+                  <td>
+                    <div className="cell">
+                      {data.studyEntries.map(e => (
+                        <span key={e.id} className={`chip study status-${e.status}`}>
+                          <button type="button" className="clicktext" title="Durumu değiştir" onClick={() => cycleStatus(key, e.id, e.status)}>
+                            {e.subject} · {e.minutes}dk
+                          </button>
+                          <button type="button" className="x" aria-label="Sil" onClick={() => remove(key, 'entries', e.id)}>×</button>
+                        </span>
+                      ))}
+                      {plus(key, 'study')}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="cell">
+                      {data.trainingEntries.map(e => (
+                        <span key={e.id} className="chip sport">
+                          <span className="lbl">{e.type} · {formatDuration(e.minutes)}</span>
+                          <button type="button" className="x" aria-label="Sil" onClick={() => remove(key, 'training', e.id)}>×</button>
+                        </span>
+                      ))}
+                      {plus(key, 'sport')}
+                    </div>
+                  </td>
+                  <td>
+                    <div className="cell">
+                      {data.events.map(e => (
+                        <span key={e.id} className="chip event">
+                          <span className="lbl">{e.title}{e.time ? ` · ${e.time}` : ''}</span>
+                          <button type="button" className="x" aria-label="Sil" onClick={() => remove(key, 'events', e.id)}>×</button>
+                        </span>
+                      ))}
+                      {plus(key, 'event')}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th>Top.</th>
+              <td><b>{studyTotal}</b> dk</td>
+              <td><b>{trainDays}</b>/7 gün · {formatDuration(trainTotal)}</td>
+              <td><b>{eventTotal}</b> etkinlik</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div className="note">Ders kaydına dokununca durumu değişir (Yapılacak → Devam → Tamam). Hücredeki + o günü ve türü ekleme çubuğuna getirir. Gün numarasına dokunarak o günün detayına geçebilirsiniz.</div>
     </>
   );
 }
