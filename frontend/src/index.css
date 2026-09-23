@@ -108,7 +108,8 @@ h1, h2, h3 { font-family: var(--f-display); margin: 0; letter-spacing: -0.02em; 
 /* Header */
 header.top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 header.top h1 { font-size: 24px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
-header.top h1 .mark { width: 26px; height: 26px; border-radius: 8px; background: var(--ink); color: var(--bg); display: grid; place-items: center; font-size: 15px; }
+header.top h1 .logo { width: 30px; height: 30px; display: block; flex-shrink: 0; }
+.auth-logo { width: 52px; height: 52px; display: block; margin-bottom: 14px; }
 header.top .tag { font-family: var(--f-mono); font-size: 11px; color: var(--ink-soft); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px 5px 6px; display: inline-flex; align-items: center; gap: 7px; }
 header.top .tag .av { width: 20px; height: 20px; border-radius: 50%; background: var(--study-soft); color: var(--study); display: grid; place-items: center; font-weight: 600; text-transform: uppercase; }
 .logout-btn { background: none; border: 1px solid var(--line-strong); border-radius: 999px; padding: 7px 14px; font-size: 12px; font-family: var(--f-mono); color: var(--ink-soft); }

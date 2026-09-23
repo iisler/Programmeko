@@ -53,7 +53,7 @@ function AppRoutes() {
       <Route path="/" element={
         <div className="wrap">
           <header className="top">
-            <h1><span className="mark">P</span>PlanMee</h1>
+            <h1><img className="logo" src="/favicon.svg" alt="" />PlanMee</h1>
             <span className="tag"><span className="av">{user.username?.[0]}</span>{user.username}</span>
           </header>
 

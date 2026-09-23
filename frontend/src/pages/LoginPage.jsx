@@ -65,6 +65,7 @@ export default function LoginPage() {
   return (
     <div className="auth-wrap">
       <div className="auth-card">
+        <img className="auth-logo" src="/favicon.svg" alt="" />
         <h1>PlanMee</h1>
         <p className="auth-sub">{mode === 'reset' ? 'Şifreni sıfırla' : 'Ders & Antrenman Takip'}</p>
 
