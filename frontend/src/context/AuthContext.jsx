@@ -1,5 +1,5 @@
-import { createContext, useContext, useState } from 'react';
-import client from '../api/client';
+import { createContext, useContext, useEffect, useState } from 'react';
+import client, { AUTH_EXPIRED_EVENT, AUTH_KEYS } from '../api/client';
 
 const AuthContext = createContext(null);
 
@@ -25,9 +25,16 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
-    localStorage.clear();
+    AUTH_KEYS.forEach((k) => localStorage.removeItem(k));
     setUser(null);
   }
+
+  // API 401 döndürünce (client.js) oturumu kapat
+  useEffect(() => {
+    const onExpired = () => setUser(null);
+    window.addEventListener(AUTH_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onExpired);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, login, register, logout }}>

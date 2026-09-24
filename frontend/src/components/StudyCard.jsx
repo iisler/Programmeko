@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import client from '../api/client';
+import { errorText } from '../api/errors';
 
 const STATUS_ORDER = ['todo', 'inprogress', 'done'];
 const STATUS_SHORT = { todo: 'Yapılacak', inprogress: 'Devam Ediyor', done: 'Tamamlandı' };
@@ -12,6 +13,7 @@ export default function StudyCard({ date, entries, subjects, setSubjects, totalM
   const [form, setForm] = useState({ subject: '', topic: '', minutes: '' });
   const [subjectsOpen, setSubjectsOpen] = useState(false);
   const [newSubject, setNewSubject] = useState('');
+  const [subjectError, setSubjectError] = useState('');
 
   async function addEntry(e) {
     e.preventDefault();
@@ -35,9 +37,14 @@ export default function StudyCard({ date, entries, subjects, setSubjects, totalM
   async function addSubject(e) {
     e.preventDefault();
     if (!newSubject.trim()) return;
-    const res = await client.post('/subjects', JSON.stringify(newSubject.trim()), { headers: { 'Content-Type': 'application/json' } });
-    setSubjects(s => [...s, res.data.name]);
-    setNewSubject('');
+    try {
+      const res = await client.post('/subjects', JSON.stringify(newSubject.trim()), { headers: { 'Content-Type': 'application/json' } });
+      setSubjects(s => [...s, res.data.name]);
+      setNewSubject('');
+      setSubjectError('');
+    } catch (err) {
+      setSubjectError(errorText(err));
+    }
   }
 
   async function deleteSubject(name) {
@@ -100,9 +107,12 @@ export default function StudyCard({ date, entries, subjects, setSubjects, totalM
             ))
           }
           <form className="subject-addrow" onSubmit={addSubject}>
-            <input placeholder="Yeni ders adı (ör. Almanca)" value={newSubject} onChange={e => setNewSubject(e.target.value)} />
+            <input id="new-subject" aria-label="Yeni ders adı" placeholder="Yeni ders adı (ör. Almanca)" value={newSubject}
+              className={subjectError ? 'input-error' : ''}
+              onChange={e => { setNewSubject(e.target.value); setSubjectError(''); }} />
             <button type="submit">Ekle</button>
           </form>
+          {subjectError && <div className="inline-error" role="alert">{subjectError}</div>}
         </div>
       )}
     </div>

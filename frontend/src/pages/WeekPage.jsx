@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import client from '../api/client';
+import { errorText } from '../api/errors';
 import StatsBar from '../components/StatsBar';
 
 const WEEKDAYS = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -27,8 +28,9 @@ function writePref(k, v) { try { localStorage.setItem(k, v); } catch { /* yoksay
 
 const STATUS_ORDER = ['todo', 'inprogress', 'done'];
 
-export default function WeekPage({ currentDate, setCurrentDate, weekSummaries, onDataChanged, subjects }) {
+export default function WeekPage({ currentDate, setCurrentDate, onDataChanged, subjects }) {
   const [weekDays, setWeekDays] = useState([]);
+  const [loadError, setLoadError] = useState('');
   const [weekStart, setWeekStart] = useState(() => mondayOf(currentDate));
   const [mode, setMode] = useState(() => readPref('weekMode', 'table'));
 
@@ -36,9 +38,22 @@ export default function WeekPage({ currentDate, setCurrentDate, weekSummaries, o
 
   async function loadWeek(mon) {
     const keys = Array.from({ length: 7 }, (_, i) => dkey(addDays(mon, i)));
-    const results = await Promise.all(keys.map(k => client.get(`/days/${k}`).then(r => ({ key: k, data: r.data }))));
-    setWeekDays(results);
+    try {
+      const results = await Promise.all(keys.map(k => client.get(`/days/${k}`).then(r => ({ key: k, data: r.data }))));
+      setWeekDays(results);
+      setLoadError('');
+    } catch (err) {
+      setLoadError(errorText(err));
+    }
   }
+
+  // İstatistikler gösterilen haftadan hesaplanır (seçili günün haftasından değil)
+  const shownWeekSummaries = weekDays.map(({ key, data }) => ({
+    date: key,
+    studyMinutes: data.studyEntries.reduce((s, e) => s + e.minutes, 0),
+    trainingDone: data.trainingEntries.length > 0,
+    eventCount: data.events.length,
+  }));
 
   async function refresh() {
     await loadWeek(weekStart);
@@ -66,6 +81,13 @@ export default function WeekPage({ currentDate, setCurrentDate, weekSummaries, o
         <button onClick={() => shiftWeek(1)}>Sonraki ›</button>
       </div>
 
+      {loadError && (
+        <div className="load-error">
+          <p>Hafta yüklenemedi: {loadError}</p>
+          <button className="btn" onClick={() => loadWeek(weekStart)}>Tekrar dene</button>
+        </div>
+      )}
+
       <div className="weekbar">
         <div className="modetoggle" role="group" aria-label="Görünüm">
           <button className={mode === 'table' ? 'active' : ''} onClick={() => changeMode('table')}>Tablo</button>
@@ -83,7 +105,7 @@ export default function WeekPage({ currentDate, setCurrentDate, weekSummaries, o
         />
       ) : (
         <>
-          <StatsBar weekSummaries={weekSummaries} standalone />
+          <StatsBar weekSummaries={shownWeekSummaries} standalone />
 
           {weekDays.map(({ key, data }, i) => {
             const date = addDays(weekStart, i);

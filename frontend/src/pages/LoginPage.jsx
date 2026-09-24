@@ -1,15 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
-
-function errorText(err) {
-  const data = err.response?.data;
-  if (Array.isArray(data)) return data.join(' ');
-  if (typeof data === 'string' && data) return data;
-  if (!err.response) return 'Sunucuya ulaşılamadı. Backend çalışıyor mu?';
-  return 'Bir hata oluştu';
-}
+import { errorText } from '../api/errors';
 
 export default function LoginPage() {
   const { login, register } = useAuth();
@@ -19,6 +12,14 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
   const [loading, setLoading] = useState(false);
+  const [canReset, setCanReset] = useState(false);
+
+  // "Şifremi unuttum" yalnızca sunucuda açıksa gösterilir (şimdilik sadece Development)
+  useEffect(() => {
+    client.get('/auth/features')
+      .then(r => setCanReset(!!r.data?.directPasswordReset))
+      .catch(() => setCanReset(false));
+  }, []);
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -101,7 +102,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        {mode === 'login' && (
+        {mode === 'login' && canReset && (
           <button className="auth-link" onClick={() => switchMode('reset')}>Şifremi unuttum</button>
         )}
         {mode === 'reset' && (

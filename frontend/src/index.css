@@ -338,3 +338,10 @@ header.top .tag .av { width: 20px; height: 20px; border-radius: 50%; background:
   .wktable .daycell .dn { font-size: 16px; }
 }
 .input-error { border-color: var(--danger) !important; box-shadow: 0 0 0 3px var(--danger-soft) !important; }
+
+/* Oturum ve hata durumları */
+.top-right { display: flex; align-items: center; gap: 8px; }
+.top-right .logout-btn { padding: 5px 11px; }
+.load-error { background: var(--danger-soft); color: var(--danger); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.load-error p { margin: 0; flex: 1 1 100%; font-size: 13.5px; }
+.inline-error { font-size: 12.5px; color: var(--danger); margin-top: 6px; }

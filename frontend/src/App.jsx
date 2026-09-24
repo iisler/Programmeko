@@ -17,21 +17,26 @@ function dkey(d) {
 }
 
 function AppRoutes() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [weekSummaries, setWeekSummaries] = useState([]);
   const [view, setView] = useState('day');
   const [subjects, setSubjects] = useState([]);
 
+  // Hatalar sessizce yutulur: 401'i client.js yakalar, gün yükleme hatası DayPage'de gösterilir.
   async function loadWeek(date) {
     const mon = mondayOf(date);
-    const res = await client.get(`/days/week/${dkey(mon)}`);
-    setWeekSummaries(res.data);
+    try {
+      const res = await client.get(`/days/week/${dkey(mon)}`);
+      setWeekSummaries(res.data);
+    } catch { /* yukarıdaki not */ }
   }
 
   async function loadSubjects() {
-    const res = await client.get('/subjects');
-    setSubjects(res.data.map(s => s.name));
+    try {
+      const res = await client.get('/subjects');
+      setSubjects(res.data.map(s => s.name));
+    } catch { /* yukarıdaki not */ }
   }
 
   useEffect(() => {
@@ -54,7 +59,10 @@ function AppRoutes() {
         <div className="wrap">
           <header className="top">
             <h1><img className="logo" src="/favicon.svg" alt="" />PlanMee</h1>
-            <span className="tag"><span className="av">{user.username?.[0]}</span>{user.username}</span>
+            <div className="top-right">
+              <span className="tag"><span className="av">{user.username?.[0]}</span>{user.username}</span>
+              <button className="logout-btn" onClick={logout}>Çıkış</button>
+            </div>
           </header>
 
           <div className="viewtabs">
@@ -74,7 +82,6 @@ function AppRoutes() {
             : <WeekPage
                 currentDate={currentDate}
                 setCurrentDate={(d) => { setCurrentDate(d); setView('day'); }}
-                weekSummaries={weekSummaries}
                 subjects={subjects}
                 onDataChanged={() => loadWeek(currentDate)}
               />

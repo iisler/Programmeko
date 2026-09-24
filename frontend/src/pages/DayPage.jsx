@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import client from '../api/client';
+import { errorText } from '../api/errors';
 import WeekTrail from '../components/WeekTrail';
 import StatsBar from '../components/StatsBar';
 import StudyCard from '../components/StudyCard';
@@ -23,21 +24,38 @@ function addDays(d, n) {
 export default function DayPage({ currentDate, setCurrentDate, weekSummaries, subjects, setSubjects, onDataChanged }) {
   const { logout } = useAuth();
   const [day, setDay] = useState(null);
+  const [loadError, setLoadError] = useState('');
+  const [retry, setRetry] = useState(0);
   const date = dkey(currentDate);
   const isToday = dkey(new Date()) === date;
 
   useEffect(() => {
-    client.get(`/days/${date}`).then(r => setDay(r.data));
-  }, [date]);
+    let active = true;
+    client.get(`/days/${date}`)
+      .then(r => { if (active) { setDay(r.data); setLoadError(''); } })
+      .catch(err => { if (active) setLoadError(errorText(err)); });
+    return () => { active = false; };
+  }, [date, retry]);
 
+  if (loadError && !day) return (
+    <div className="load-error">
+      <p>Gün yüklenemedi: {loadError}</p>
+      <button className="btn" onClick={() => { setLoadError(''); setRetry(n => n + 1); }}>Tekrar dene</button>
+      <button className="logout-btn" onClick={logout}>Çıkış Yap</button>
+    </div>
+  );
   if (!day) return <div className="loading">Yükleniyor…</div>;
 
   const totalStudy = day.studyEntries.reduce((s, e) => s + e.minutes, 0);
   const totalTrain = day.trainingEntries.reduce((s, e) => s + e.minutes, 0);
 
   async function refresh() {
-    const r = await client.get(`/days/${date}`);
-    setDay(r.data);
+    try {
+      const r = await client.get(`/days/${date}`);
+      setDay(r.data);
+    } catch (err) {
+      setLoadError(errorText(err));
+    }
     onDataChanged();
   }
 
@@ -65,9 +83,6 @@ export default function DayPage({ currentDate, setCurrentDate, weekSummaries, su
         "Hafta Planı" sekmesinden gelecek günler için önceden ders/antrenman/etkinlik girebilirsiniz.
       </div>
 
-      <div className="note">
-        <button className="logout-btn" onClick={logout}>Çıkış Yap</button>
-      </div>
     </>
   );
 }
