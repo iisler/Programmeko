@@ -382,6 +382,9 @@ header.top .tag .av { width: 20px; height: 20px; border-radius: 50%; background:
   .wktable .chip { font-size: 10.5px; padding: 2px 2px 2px 6px; }
   .wktable .daycell .dn { font-size: 16px; }
 }
+
+/* Kaydetme hatası bildirimi */
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); z-index: 50; max-width: min(92vw, 460px); background: var(--danger); color: #fff; font-size: 13.5px; font-weight: 600; line-height: 1.4; padding: 12px 16px; border-radius: 14px; box-shadow: var(--shadow); }
 </style>
 </head>
 <body>
@@ -407,7 +410,7 @@ function migrateTraining(raw){
   return [];
 }
 
-let state = { currentDate: new Date(), days:{}, index:[], view:'day', historyOpen:false, subjects:[], subjectsOpen:false, editingEventId:null, weekMode:readPref('weekMode','table'), wkAdd:{day:null, kind:'study'} };
+let state = { currentDate: new Date(), days:{}, saved:{}, index:[], view:'day', historyOpen:false, subjects:[], subjectsOpen:false, editingEventId:null, weekMode:readPref('weekMode','table'), wkAdd:{day:null, kind:'study'} };
 function readPref(k,def){ try{ return localStorage.getItem(k)||def; }catch(e){ return def; } }
 function writePref(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
 
@@ -420,8 +423,10 @@ async function loadSubjects(){
   return DEFAULT_SUBJECTS;
 }
 async function saveSubjects(list){
+  const prev = state.subjects;
   state.subjects = list;
-  try{ await db.ref('subjects').set(list); }catch(e){ console.error('subjects save failed', e); }
+  try{ await db.ref('subjects').set(list); }
+  catch(e){ console.error('subjects save failed', e); state.subjects = prev; showToast(SAVE_FAILED_MSG); }
 }
 async function addSubject(name){
   name = (name||'').trim();
@@ -441,7 +446,7 @@ async function loadIndex(){
 }
 async function saveIndex(idx){
   idx.sort((a,b)=> a.date < b.date ? 1 : -1);
-  try{ await db.ref('daysIndex').set(idx); }catch(e){ console.error('index save failed', e); }
+  try{ await db.ref('daysIndex').set(idx); }catch(e){ console.error('index save failed', e); showToast('Haftalık özet güncellenemedi. Sayfayı yenileyip tekrar dene.'); }
 }
 async function loadDay(key){
   const snap = await db.ref('days/'+key).get();
@@ -455,6 +460,7 @@ async function ensureDay(key){
   if(state.days[key]) return state.days[key];
   const d = await loadDay(key);
   state.days[key] = d;
+  state.saved[key] = clone(d);
   return d;
 }
 function computeSummary(key,data){
@@ -462,14 +468,35 @@ function computeSummary(key,data){
   const trainingMinutes = data.training.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
   return { date:key, studyMinutes, entryCount:data.studyEntries.length, trainingDone: data.training.length>0, trainingCount: data.training.length, trainingMinutes, eventCount: (data.events||[]).length };
 }
+// Kayıt başarısız olursa gün, son başarılı kaydedilen haline döner; kullanıcı uyarılır.
 async function persist(key){
   const data = state.days[key];
-  try{ await db.ref('days/'+key).set(data); }catch(e){ console.error('save failed', e); return; }
+  try{ await db.ref('days/'+key).set(data); }
+  catch(e){
+    console.error('save failed', e);
+    state.days[key] = clone(state.saved[key] || emptyDay());
+    showToast(SAVE_FAILED_MSG);
+    return false;
+  }
+  state.saved[key] = clone(data);
   const summary = computeSummary(key,data);
   const idx = state.index.filter(e=>e.date!==key);
   if(summary.studyMinutes>0 || summary.trainingDone || summary.eventCount>0) idx.push(summary);
   state.index = idx;
   await saveIndex(idx);
+  return true;
+}
+
+const SAVE_FAILED_MSG = 'Kaydedilemedi, değişiklik geri alındı. İnternet bağlantını kontrol edip tekrar dene.';
+function clone(o){ return JSON.parse(JSON.stringify(o)); }
+let toastTimer = null;
+function showToast(msg){
+  let t = document.getElementById('toast');
+  if(!t){ t = document.createElement('div'); t.id = 'toast'; t.className = 'toast'; t.setAttribute('role','alert'); document.body.appendChild(t); }
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ t.hidden = true; }, 6000);
 }
 function summaryFor(key){ return state.index.find(e=>e.date===key); }
 function getDay(key){ return state.days[key] || emptyDay(); }
@@ -611,6 +638,8 @@ function statsHtml(ws,wt,we,standalone){
     <div class="stat evt"><div class="num">${we}</div><div class="lbl">Etkinlik</div></div>
   </div>`;
 }
+// onclick="fn(${jsAttr(x)})" için: JSON literal'i öznitelik içinde güvenli hale getirir (tırnak, kesme işareti vb.)
+function jsAttr(v){ return escapeHtml(JSON.stringify(v)); }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function flashError(el){
   if(!el) return;
@@ -637,20 +666,20 @@ function renderDayHtml(){
     ? `<div class="empty-note">Bu gün için henüz ders kaydı yok.</div>`
     : data.studyEntries.map(e=>{
         const st = e.status||'todo';
-        return `<div class="entry"><button class="status-badge status-${st}" onclick="cycleStatus('${key}', ${JSON.stringify(e.id)})">${STATUS_SHORT[st]}</button><div class="info"><div class="subj${st==='done'?' done':''}">${escapeHtml(e.subject)}</div>${e.topic?`<div class="topic">${escapeHtml(e.topic)}</div>`:''}</div><span class="mins">${e.minutes} dk</span><button class="del" aria-label="Sil" onclick="delEntry('${key}', ${JSON.stringify(e.id)})">×</button></div>`;
+        return `<div class="entry"><button class="status-badge status-${st}" onclick="cycleStatus('${key}', ${jsAttr(e.id)})">${STATUS_SHORT[st]}</button><div class="info"><div class="subj${st==='done'?' done':''}">${escapeHtml(e.subject)}</div>${e.topic?`<div class="topic">${escapeHtml(e.topic)}</div>`:''}</div><span class="mins">${escapeHtml(e.minutes)} dk</span><button class="del" aria-label="Sil" onclick="delEntry('${key}', ${jsAttr(e.id)})">×</button></div>`;
       }).join('');
 
   const trainingMinutes = data.training.reduce((s,e)=>s+(parseInt(e.minutes)||0),0);
   let trainingHtml = data.training.length===0
     ? `<div class="empty-note">Bu gün için henüz antrenman kaydı yok.</div>`
-    : data.training.map(e=>`<div class="entry"><span class="swatch sport"></span><div class="info"><div class="subj">${escapeHtml(e.type)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div><span class="mins sport">${formatDuration(e.minutes)}</span><button class="del" aria-label="Sil" onclick="delTraining('${key}', ${JSON.stringify(e.id)})">×</button></div>`).join('');
+    : data.training.map(e=>`<div class="entry"><span class="swatch sport"></span><div class="info"><div class="subj">${escapeHtml(e.type)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div><span class="mins sport">${formatDuration(e.minutes)}</span><button class="del" aria-label="Sil" onclick="delTraining('${key}', ${jsAttr(e.id)})">×</button></div>`).join('');
 
   const events = data.events||[];
   let eventsHtml = events.length===0
     ? `<div class="empty-note">Bu gün için planlı etkinlik yok.</div>`
     : events.map(e=>{
         if(state.editingEventId===e.id){
-          return `<form class="edit-form" onsubmit="return handleUpdateEvent(event,'${key}',${JSON.stringify(e.id)})">
+          return `<form class="edit-form" onsubmit="return handleUpdateEvent(event,'${key}',${jsAttr(e.id)})">
             <input name="etitle" placeholder="Etkinlik" value="${escapeHtml(e.title)}" autocomplete="off">
             <input name="etime" placeholder="Saat" value="${escapeHtml(e.time||'')}" autocomplete="off">
             <input name="enote" placeholder="Not" value="${escapeHtml(e.note||'')}" autocomplete="off">
@@ -658,7 +687,7 @@ function renderDayHtml(){
             <button type="button" class="cancel" onclick="cancelEditEvent()">İptal</button>
           </form>`;
         }
-        return `<div class="entry"><span class="swatch evt"></span><div class="info"><div class="subj">${escapeHtml(e.title)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div>${e.time?`<span class="mins evt">${escapeHtml(e.time)}</span>`:''}<button class="edit" aria-label="Düzenle" onclick="startEditEvent(${JSON.stringify(e.id)})">✎</button><button class="del" aria-label="Sil" onclick="delEvent('${key}', ${JSON.stringify(e.id)})">×</button></div>`;
+        return `<div class="entry"><span class="swatch evt"></span><div class="info"><div class="subj">${escapeHtml(e.title)}</div>${e.note?`<div class="topic">${escapeHtml(e.note)}</div>`:''}</div>${e.time?`<span class="mins evt">${escapeHtml(e.time)}</span>`:''}<button class="edit" aria-label="Düzenle" onclick="startEditEvent(${jsAttr(e.id)})">✎</button><button class="del" aria-label="Sil" onclick="delEvent('${key}', ${jsAttr(e.id)})">×</button></div>`;
       }).join('');
 
   let historyHtml = '';
@@ -701,7 +730,7 @@ function renderDayHtml(){
       <button class="manage-toggle" onclick="toggleSubjectsPanel()">${state.subjectsOpen?'▲ Ders listesini kapat':'✎ Dersleri düzenle (ekle/sil)'}</button>
       ${state.subjectsOpen?`
         <div class="subject-panel">
-          ${state.subjects.map(s=>`<span class="subject-chip">${escapeHtml(s)}<button class="x" onclick='deleteSubject(${JSON.stringify(s)})'>×</button></span>`).join('') || `<div class="empty-note">Henüz ders eklenmemiş.</div>`}
+          ${state.subjects.map(s=>`<span class="subject-chip">${escapeHtml(s)}<button class="x" onclick="deleteSubject(${jsAttr(s)})">×</button></span>`).join('') || `<div class="empty-note">Henüz ders eklenmemiş.</div>`}
           <form class="subject-addrow" onsubmit="return handleAddSubject(event)">
             <input name="newsubject" placeholder="Yeni ders adı (ör. Almanca)" autocomplete="off">
             <button type="submit">Ekle</button>
@@ -789,11 +818,11 @@ function renderWeekTableHtml(){
     const wd = addDays(mon,i), data = getDay(key);
     const study = data.studyEntries.map(e=>{
       const st = e.status||'todo';
-      return `<span class="chip study status-${st}"><button type="button" class="clicktext" title="Durumu değiştir" onclick="cycleStatus('${key}',${JSON.stringify(e.id)})">${escapeHtml(e.subject)} · ${e.minutes}dk</button><button type="button" class="x" aria-label="Sil" onclick="delEntry('${key}',${JSON.stringify(e.id)})">×</button></span>`;
+      return `<span class="chip study status-${st}"><button type="button" class="clicktext" title="Durumu değiştir" onclick="cycleStatus('${key}',${jsAttr(e.id)})">${escapeHtml(e.subject)} · ${escapeHtml(e.minutes)}dk</button><button type="button" class="x" aria-label="Sil" onclick="delEntry('${key}',${jsAttr(e.id)})">×</button></span>`;
     }).join('');
     const sport = data.training.map(e=>{ trainMins += parseInt(e.minutes)||0;
-      return `<span class="chip sport"><span class="lbl">${escapeHtml(e.type)} · ${formatDuration(e.minutes)}</span><button type="button" class="x" aria-label="Sil" onclick="delTraining('${key}',${JSON.stringify(e.id)})">×</button></span>`; }).join('');
-    const evts = (data.events||[]).map(e=>`<span class="chip event"><span class="lbl">${escapeHtml(e.title)}${e.time?' · '+escapeHtml(e.time):''}</span><button type="button" class="x" aria-label="Sil" onclick="delEvent('${key}',${JSON.stringify(e.id)})">×</button></span>`).join('');
+      return `<span class="chip sport"><span class="lbl">${escapeHtml(e.type)} · ${formatDuration(e.minutes)}</span><button type="button" class="x" aria-label="Sil" onclick="delTraining('${key}',${jsAttr(e.id)})">×</button></span>`; }).join('');
+    const evts = (data.events||[]).map(e=>`<span class="chip event"><span class="lbl">${escapeHtml(e.title)}${e.time?' · '+escapeHtml(e.time):''}</span><button type="button" class="x" aria-label="Sil" onclick="delEvent('${key}',${jsAttr(e.id)})">×</button></span>`).join('');
     const plus = k => `<button type="button" class="plus" aria-label="Ekle" onclick="prefillWkAdd('${key}','${k}')">+</button>`;
     return `<tr class="${key===todayKey?'today':''} ${i>=5?'weekend':''}">
       <th class="daycell" scope="row"><button onclick="goToDate(new Date(${wd.getFullYear()},${wd.getMonth()},${wd.getDate()}))" title="Güne git"><span class="dw">${WEEKDAYS[i]}</span><span class="dn">${wd.getDate()}</span></button></th>
@@ -851,10 +880,10 @@ function renderWeekHtml(){
     const wd = addDays(mon,i), key = dkey(wd), data = getDay(key), isToday = sameDay(wd,new Date());
     const studyChips = data.studyEntries.map(e=>{
       const st = e.status||'todo';
-      return `<span class="chip study status-${st}"><button type="button" class="clicktext" onclick="cycleStatus('${key}',${JSON.stringify(e.id)})">${escapeHtml(e.subject)} · ${e.minutes}dk</button><button type="button" class="x" aria-label="Sil" onclick="delEntry('${key}',${JSON.stringify(e.id)})">×</button></span>`;
+      return `<span class="chip study status-${st}"><button type="button" class="clicktext" onclick="cycleStatus('${key}',${jsAttr(e.id)})">${escapeHtml(e.subject)} · ${escapeHtml(e.minutes)}dk</button><button type="button" class="x" aria-label="Sil" onclick="delEntry('${key}',${jsAttr(e.id)})">×</button></span>`;
     }).join('');
-    const eventChips = (data.events||[]).map(e=>`<span class="chip event">${escapeHtml(e.title)}${e.time?' · '+escapeHtml(e.time):''}<button type="button" class="x" aria-label="Sil" onclick="delEvent('${key}',${JSON.stringify(e.id)})">×</button></span>`).join('');
-    const trainingChips = data.training.map(e=>`<span class="chip sport">${escapeHtml(e.type)} · ${formatDuration(e.minutes)}<button type="button" class="x" aria-label="Sil" onclick="delTraining('${key}',${JSON.stringify(e.id)})">×</button></span>`).join('');
+    const eventChips = (data.events||[]).map(e=>`<span class="chip event">${escapeHtml(e.title)}${e.time?' · '+escapeHtml(e.time):''}<button type="button" class="x" aria-label="Sil" onclick="delEvent('${key}',${jsAttr(e.id)})">×</button></span>`).join('');
+    const trainingChips = data.training.map(e=>`<span class="chip sport">${escapeHtml(e.type)} · ${formatDuration(e.minutes)}<button type="button" class="x" aria-label="Sil" onclick="delTraining('${key}',${jsAttr(e.id)})">×</button></span>`).join('');
 
     cards += `
       <div class="weekcard ${isToday?'today':''}">
