@@ -9,10 +9,20 @@ using PlanMee.API.Models;
 
 namespace PlanMee.API.Controllers;
 
+public static class AuthClaims
+{
+    public const string SecurityStamp = "sstamp";
+}
+
 [ApiController]
 [Route("api/auth")]
 public class AuthController(UserManager<User> userManager, IConfiguration config) : ControllerBase
 {
+    // İstemcinin hangi giriş özelliklerini göstereceğini bilmesi için (ör. "Şifremi unuttum" bağlantısı)
+    [HttpGet("features")]
+    public IActionResult Features() =>
+        Ok(new { directPasswordReset = config.GetValue<bool>("Auth:AllowDirectPasswordReset") });
+
     [HttpPost("register")]
     public async Task<IActionResult> Register(RegisterDto dto)
     {
@@ -30,7 +40,7 @@ public class AuthController(UserManager<User> userManager, IConfiguration config
         if (user == null || !await userManager.CheckPasswordAsync(user, dto.Password))
             return Unauthorized("E-posta veya şifre hatalı");
 
-        var token = CreateToken(user);
+        var token = await CreateToken(user);
         return Ok(new AuthResponseDto(token, user.Email!, user.UserName!));
     }
 
@@ -55,14 +65,15 @@ public class AuthController(UserManager<User> userManager, IConfiguration config
         return Ok(new { message = "Şifre güncellendi" });
     }
 
-    private string CreateToken(User user)
+    private async Task<string> CreateToken(User user)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(config["Jwt:Key"]!));
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id),
             new Claim(ClaimTypes.Email, user.Email!),
-            new Claim(ClaimTypes.Name, user.UserName!)
+            new Claim(ClaimTypes.Name, user.UserName!),
+            new Claim(AuthClaims.SecurityStamp, await userManager.GetSecurityStampAsync(user))
         };
         var token = new JwtSecurityToken(
             issuer: config["Jwt:Issuer"],

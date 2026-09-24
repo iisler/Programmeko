@@ -14,6 +14,9 @@ public class SubjectsController(AppDbContext db) : ControllerBase
 {
     private string UserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
+    private static readonly StringComparer TurkishIgnoreCase =
+        StringComparer.Create(new System.Globalization.CultureInfo("tr-TR"), ignoreCase: true);
+
     private static readonly string[] DefaultSubjects =
         ["Matematik", "Geometri", "Fizik", "Kimya", "Biyoloji", "Türkçe", "Tarih", "Coğrafya", "Felsefe", "İngilizce"];
 
@@ -39,10 +42,13 @@ public class SubjectsController(AppDbContext db) : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Add([FromBody] string name)
     {
-        name = name.Trim();
+        name = (name ?? "").Trim();
         if (string.IsNullOrEmpty(name)) return BadRequest("Ders adı boş olamaz");
-        if (await db.Subjects.AnyAsync(s => s.UserId == UserId && s.Name == name))
-            return Conflict("Bu ders zaten var");
+        if (name.Length > 100) return BadRequest("Ders adı en fazla 100 karakter olabilir");
+        // Türkçe kurallarıyla büyük/küçük harf duyarsız karşılaştırma (ör. "İngilizce" = "ingilizce")
+        var existing = await db.Subjects.Where(s => s.UserId == UserId).Select(s => s.Name).ToListAsync();
+        if (existing.Any(n => TurkishIgnoreCase.Equals(n.Trim(), name)))
+            return Conflict($"\"{name}\" zaten ders listende var");
         var subject = new Subject { UserId = UserId, Name = name };
         db.Subjects.Add(subject);
         await db.SaveChangesAsync();

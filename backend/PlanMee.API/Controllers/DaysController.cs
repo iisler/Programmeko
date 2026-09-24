@@ -19,8 +19,14 @@ public class DaysController(AppDbContext db) : ControllerBase
     public async Task<IActionResult> GetDay(string date)
     {
         if (!DateOnly.TryParse(date, out var d)) return BadRequest("Geçersiz tarih");
-        var day = await GetOrCreateDay(d);
-        return Ok(MapDay(day, date));
+        // Okuma kayıt oluşturmaz; gün yoksa boş döner.
+        var day = await db.Days
+            .AsNoTracking()
+            .Include(x => x.StudyEntries)
+            .Include(x => x.TrainingEntries)
+            .Include(x => x.Events)
+            .FirstOrDefaultAsync(x => x.UserId == UserId && x.Date == d);
+        return Ok(day == null ? new DayDto(date, [], [], []) : MapDay(day, date));
     }
 
     [HttpGet("week/{monday}")]
@@ -40,7 +46,7 @@ public class DaysController(AppDbContext db) : ControllerBase
             var day = days.FirstOrDefault(d => d.Date == date);
             return new WeekSummaryDto(
                 date.ToString("yyyy-MM-dd"),
-                day?.StudyEntries.Sum(e => e.Minutes) ?? 0,
+                (int)Math.Min(int.MaxValue, day?.StudyEntries.Sum(e => (long)e.Minutes) ?? 0),
                 day?.StudyEntries.Count ?? 0,
                 day?.TrainingEntries.Count > 0,
                 day?.TrainingEntries.Count ?? 0,
@@ -53,9 +59,10 @@ public class DaysController(AppDbContext db) : ControllerBase
     [HttpPost("{date}/entries")]
     public async Task<IActionResult> AddEntry(string date, AddStudyEntryDto dto)
     {
-        if (!DateOnly.TryParse(date, out var d)) return BadRequest();
-        var day = await GetOrCreateDay(d);
-        var entry = new StudyEntry { DayId = day.Id, Subject = dto.Subject, Topic = dto.Topic, Minutes = dto.Minutes, Status = "todo" };
+        if (!DateOnly.TryParse(date, out var d)) return BadRequest("Geçersiz tarih");
+        if (string.IsNullOrWhiteSpace(dto.Subject)) return BadRequest("Ders seçin");
+        var dayId = await GetOrCreateDayId(d);
+        var entry = new StudyEntry { DayId = dayId, Subject = dto.Subject.Trim(), Topic = dto.Topic?.Trim() ?? "", Minutes = dto.Minutes, Status = "todo" };
         db.StudyEntries.Add(entry);
         await db.SaveChangesAsync();
         return Ok(new StudyEntryDto(entry.Id, entry.Subject, entry.Topic, entry.Minutes, entry.Status));
@@ -88,9 +95,10 @@ public class DaysController(AppDbContext db) : ControllerBase
     [HttpPost("{date}/training")]
     public async Task<IActionResult> AddTraining(string date, AddTrainingDto dto)
     {
-        if (!DateOnly.TryParse(date, out var d)) return BadRequest();
-        var day = await GetOrCreateDay(d);
-        var entry = new TrainingEntry { DayId = day.Id, Type = dto.Type, Minutes = dto.Minutes, Note = dto.Note };
+        if (!DateOnly.TryParse(date, out var d)) return BadRequest("Geçersiz tarih");
+        if (string.IsNullOrWhiteSpace(dto.Type)) return BadRequest("Antrenman türü seçin");
+        var dayId = await GetOrCreateDayId(d);
+        var entry = new TrainingEntry { DayId = dayId, Type = dto.Type.Trim(), Minutes = dto.Minutes, Note = dto.Note?.Trim() ?? "" };
         db.TrainingEntries.Add(entry);
         await db.SaveChangesAsync();
         return Ok(new TrainingEntryDto(entry.Id, entry.Type, entry.Minutes, entry.Note));
@@ -110,9 +118,10 @@ public class DaysController(AppDbContext db) : ControllerBase
     [HttpPost("{date}/events")]
     public async Task<IActionResult> AddEvent(string date, AddEventDto dto)
     {
-        if (!DateOnly.TryParse(date, out var d)) return BadRequest();
-        var day = await GetOrCreateDay(d);
-        var ev = new Event { DayId = day.Id, Title = dto.Title, Time = dto.Time, Note = dto.Note };
+        if (!DateOnly.TryParse(date, out var d)) return BadRequest("Geçersiz tarih");
+        if (string.IsNullOrWhiteSpace(dto.Title)) return BadRequest("Etkinlik adı girin");
+        var dayId = await GetOrCreateDayId(d);
+        var ev = new Event { DayId = dayId, Title = dto.Title.Trim(), Time = dto.Time?.Trim() ?? "", Note = dto.Note?.Trim() ?? "" };
         db.Events.Add(ev);
         await db.SaveChangesAsync();
         return Ok(new EventDto(ev.Id, ev.Title, ev.Time, ev.Note));
@@ -124,7 +133,8 @@ public class DaysController(AppDbContext db) : ControllerBase
         var ev = await db.Events.Include(e => e.Day)
             .FirstOrDefaultAsync(e => e.Id == id && e.Day!.UserId == UserId);
         if (ev == null) return NotFound();
-        ev.Title = dto.Title; ev.Time = dto.Time; ev.Note = dto.Note;
+        if (string.IsNullOrWhiteSpace(dto.Title)) return BadRequest("Etkinlik adı girin");
+        ev.Title = dto.Title.Trim(); ev.Time = dto.Time?.Trim() ?? ""; ev.Note = dto.Note?.Trim() ?? "";
         await db.SaveChangesAsync();
         return Ok(new EventDto(ev.Id, ev.Title, ev.Time, ev.Note));
     }
@@ -140,19 +150,29 @@ public class DaysController(AppDbContext db) : ControllerBase
         return NoContent();
     }
 
-    private async Task<Day> GetOrCreateDay(DateOnly date)
+    // Aynı gün için eşzamanlı iki yazma isteği gelirse ikisi de gün oluşturmaya çalışır;
+    // (UserId, Date) benzersiz indeksine takılan istek, diğerinin oluşturduğu günü kullanır.
+    private async Task<int> GetOrCreateDayId(DateOnly date)
     {
-        var day = await db.Days
-            .Include(d => d.StudyEntries)
-            .Include(d => d.TrainingEntries)
-            .Include(d => d.Events)
-            .FirstOrDefaultAsync(d => d.UserId == UserId && d.Date == date);
-        if (day != null) return day;
-        day = new Day { UserId = UserId, Date = date };
+        var id = await FindDayId(date);
+        if (id != null) return id.Value;
+
+        var day = new Day { UserId = UserId, Date = date };
         db.Days.Add(day);
-        await db.SaveChangesAsync();
-        return day;
+        try
+        {
+            await db.SaveChangesAsync();
+            return day.Id;
+        }
+        catch (DbUpdateException)
+        {
+            db.Entry(day).State = EntityState.Detached;
+            return await FindDayId(date) ?? throw new InvalidOperationException("Gün oluşturulamadı");
+        }
     }
+
+    private Task<int?> FindDayId(DateOnly date) =>
+        db.Days.Where(d => d.UserId == UserId && d.Date == date).Select(d => (int?)d.Id).FirstOrDefaultAsync();
 
     private static DayDto MapDay(Day day, string dateStr) => new(
         dateStr,
