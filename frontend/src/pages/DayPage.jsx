@@ -1,63 +1,64 @@
-import { useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useCallback, useEffect, useState } from 'react';
 import client from '../api/client';
-import { errorText } from '../api/errors';
+import { errorCode, errorText } from '../api/errors';
+import useMutation from '../hooks/useMutation';
 import WeekTrail from '../components/WeekTrail';
 import StatsBar from '../components/StatsBar';
 import StudyCard from '../components/StudyCard';
 import TrainingCard from '../components/TrainingCard';
 import EventCard from '../components/EventCard';
+import { addDays, dkey, MONTHS, WEEKDAYS_FULL } from '../utils/format';
 
-function dkey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
-
-const WEEKDAYS_FULL = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
-const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
-
-function addDays(d, n) {
-  const nd = new Date(d);
-  nd.setDate(nd.getDate() + n);
-  return nd;
-}
-
-export default function DayPage({ currentDate, setCurrentDate, weekSummaries, subjects, setSubjects, onDataChanged }) {
-  const { logout } = useAuth();
+// Seçili kişinin tek günlük planı. planParams: { memberId } (başkasının planı) veya {} (kendi planı).
+export default function DayPage({
+  currentDate, setCurrentDate, weekSummaries, planParams, fallbackCanEdit,
+  subjects, subjectsCanEdit, onAddSubject, onDeleteSubject, onDataChanged, onAccessChanged,
+}) {
   const [day, setDay] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [retry, setRetry] = useState(0);
   const date = dkey(currentDate);
   const isToday = dkey(new Date()) === date;
+  const memberId = planParams.memberId;
 
   useEffect(() => {
     let active = true;
-    client.get(`/days/${date}`)
+    client.get(`/days/${date}`, { params: memberId ? { memberId } : {} })
       .then(r => { if (active) { setDay(r.data); setLoadError(''); } })
-      .catch(err => { if (active) setLoadError(errorText(err)); });
+      .catch(err => {
+        if (!active) return;
+        setLoadError(errorText(err));
+        if (errorCode(err) === 'plan_not_found') onAccessChanged?.('plan_not_found');
+      });
     return () => { active = false; };
-  }, [date, retry]);
+  }, [date, memberId, retry, onAccessChanged]);
 
-  if (loadError && !day) return (
+  const reload = useCallback(async () => {
+    try {
+      const r = await client.get(`/days/${date}`, { params: memberId ? { memberId } : {} });
+      setDay(r.data);
+    } finally {
+      onDataChanged();
+    }
+  }, [date, memberId, onDataChanged]);
+
+  const mutate = useMutation({ state: day, setState: setDay, reload, onAccessChanged });
+
+  // Gün değişirken önceki günün verisi gösterilmesin
+  const ready = day && day.date === date;
+
+  if (loadError && !ready) return (
     <div className="load-error">
       <p>Gün yüklenemedi: {loadError}</p>
       <button className="btn" onClick={() => { setLoadError(''); setRetry(n => n + 1); }}>Tekrar dene</button>
-      <button className="logout-btn" onClick={logout}>Çıkış Yap</button>
     </div>
   );
-  if (!day) return <div className="loading">Yükleniyor…</div>;
 
-  const totalStudy = day.studyEntries.reduce((s, e) => s + e.minutes, 0);
-  const totalTrain = day.trainingEntries.reduce((s, e) => s + e.minutes, 0);
-
-  async function refresh() {
-    try {
-      const r = await client.get(`/days/${date}`);
-      setDay(r.data);
-    } catch (err) {
-      setLoadError(errorText(err));
-    }
-    onDataChanged();
-  }
+  const canEdit = ready ? day.canEdit : fallbackCanEdit;
+  const ownerId = ready ? day.memberId : memberId;
+  const totalStudy = ready ? day.studyEntries.reduce((s, e) => s + e.minutes, 0) : 0;
+  const totalTrain = ready ? day.trainingEntries.reduce((s, e) => s + e.minutes, 0) : 0;
+  const common = { date, canEdit, ownerId, planParams, mutate };
 
   return (
     <>
@@ -75,14 +76,20 @@ export default function DayPage({ currentDate, setCurrentDate, weekSummaries, su
         <StatsBar weekSummaries={weekSummaries} />
       </section>
 
-      <StudyCard date={date} entries={day.studyEntries} subjects={subjects} setSubjects={setSubjects} totalMinutes={totalStudy} onRefresh={refresh} />
-      <TrainingCard date={date} entries={day.trainingEntries} totalMinutes={totalTrain} onRefresh={refresh} />
-      <EventCard date={date} events={day.events} onRefresh={refresh} />
+      {!ready ? <div className="loading">Yükleniyor…</div> : (
+        <>
+          <StudyCard {...common} entries={day.studyEntries} totalMinutes={totalStudy}
+            subjects={subjects} subjectsCanEdit={subjectsCanEdit} onAddSubject={onAddSubject} onDeleteSubject={onDeleteSubject} />
+          <TrainingCard {...common} entries={day.trainingEntries} totalMinutes={totalTrain} />
+          <EventCard {...common} events={day.events} />
+        </>
+      )}
 
-      <div className="note">
-        "Hafta Planı" sekmesinden gelecek günler için önceden ders/antrenman/etkinlik girebilirsiniz.
-      </div>
-
+      {canEdit && (
+        <div className="note">
+          "Hafta Planı" sekmesinden gelecek günler için önceden ders/antrenman/etkinlik girebilirsiniz.
+        </div>
+      )}
     </>
   );
 }

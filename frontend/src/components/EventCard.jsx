@@ -1,37 +1,44 @@
 import { useState } from 'react';
 import client from '../api/client';
+import { patchEntry, removeEntry } from '../hooks/useMutation';
+import AuditTag from './AuditTag';
 
 const EVENT_ICON = (
   <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3.5" y="5" width="17" height="15" rx="2" /><path d="M8 3v4M16 3v4M3.5 10h17" /></svg>
 );
 
-export default function EventCard({ date, events, onRefresh }) {
+export default function EventCard({ date, events, canEdit, ownerId, planParams, mutate }) {
   const [form, setForm] = useState({ title: '', time: '', note: '' });
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [busy, setBusy] = useState(false);
 
   async function addEvent(e) {
     e.preventDefault();
-    if (!form.title) return;
-    await client.post(`/days/${date}/events`, form);
-    setForm({ title: '', time: '', note: '' });
-    onRefresh();
+    if (!form.title.trim() || busy) return;
+    setBusy(true);
+    const ok = await mutate(null, () => client.post(`/days/${date}/events`,
+      { title: form.title.trim(), time: form.time.trim(), note: form.note.trim() }, { params: planParams }));
+    setBusy(false);
+    if (ok) setForm({ title: '', time: '', note: '' });
   }
 
-  async function deleteEvent(id) {
-    await client.delete(`/days/${date}/events/${id}`);
-    onRefresh();
+  function deleteEvent(id) {
+    mutate(d => removeEntry(d, 'events', id), () => client.delete(`/days/${date}/events/${id}`));
   }
 
   async function saveEdit(id) {
-    await client.put(`/days/${date}/events/${id}`, editForm);
+    if (!editForm.title.trim()) return;
+    const body = { title: editForm.title.trim(), time: editForm.time.trim(), note: editForm.note.trim() };
     setEditingId(null);
-    onRefresh();
+    const ok = await mutate(d => patchEntry(d, 'events', id, body),
+      () => client.put(`/days/${date}/events/${id}`, body));
+    if (!ok) setEditingId(id);
   }
 
   function startEdit(ev) {
     setEditingId(ev.id);
-    setEditForm({ title: ev.title, time: ev.time, note: ev.note });
+    setEditForm({ title: ev.title, time: ev.time || '', note: ev.note || '' });
   }
 
   return (
@@ -44,9 +51,9 @@ export default function EventCard({ date, events, onRefresh }) {
         ? <div className="empty-note">Bu gün için planlı etkinlik yok.</div>
         : events.map(ev => editingId === ev.id ? (
           <form key={ev.id} className="edit-form" onSubmit={e => { e.preventDefault(); saveEdit(ev.id); }}>
-            <input name="etitle" placeholder="Etkinlik" value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} />
-            <input name="etime" placeholder="Saat" value={editForm.time} onChange={e => setEditForm(f => ({ ...f, time: e.target.value }))} />
-            <input name="enote" placeholder="Not" value={editForm.note} onChange={e => setEditForm(f => ({ ...f, note: e.target.value }))} />
+            <input name="etitle" aria-label="Etkinlik" placeholder="Etkinlik" value={editForm.title} onChange={e => setEditForm(f => ({ ...f, title: e.target.value }))} />
+            <input name="etime" aria-label="Saat" placeholder="Saat" value={editForm.time} onChange={e => setEditForm(f => ({ ...f, time: e.target.value }))} />
+            <input name="enote" aria-label="Not" placeholder="Not" value={editForm.note} onChange={e => setEditForm(f => ({ ...f, note: e.target.value }))} />
             <button type="submit" className="save">Kaydet</button>
             <button type="button" className="cancel" onClick={() => setEditingId(null)}>İptal</button>
           </form>
@@ -56,20 +63,23 @@ export default function EventCard({ date, events, onRefresh }) {
             <div className="info">
               <div className="subj">{ev.title}</div>
               {ev.note && <div className="topic">{ev.note}</div>}
+              <AuditTag entry={ev} ownerId={ownerId} />
             </div>
             {ev.time && <span className="mins evt">{ev.time}</span>}
-            <button className="edit" aria-label="Düzenle" onClick={() => startEdit(ev)}>✎</button>
-            <button className="del" aria-label="Sil" onClick={() => deleteEvent(ev.id)}>×</button>
+            {canEdit && <button className="edit" aria-label="Düzenle" onClick={() => startEdit(ev)}>✎</button>}
+            {canEdit && <button className="del" aria-label="Sil" onClick={() => deleteEvent(ev.id)}>×</button>}
           </div>
         ))
       }
 
-      <form className="addform event" onSubmit={addEvent}>
-        <input placeholder="Etkinlik (ör. deneme sınavı)" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
-        <input placeholder="Saat" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
-        <input placeholder="Not (opsiyonel)" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
-        <button type="submit">Ekle</button>
-      </form>
+      {canEdit && (
+        <form className="addform event" onSubmit={addEvent}>
+          <input placeholder="Etkinlik (ör. deneme sınavı)" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
+          <input placeholder="Saat" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))} />
+          <input placeholder="Not (opsiyonel)" value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} />
+          <button type="submit" disabled={busy}>Ekle</button>
+        </form>
+      )}
     </div>
   );
 }

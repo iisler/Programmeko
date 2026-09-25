@@ -1,9 +1,10 @@
 namespace PlanMee.API.Models;
 
-public class Subject
+public class Subject : AuditedEntity
 {
     public int Id { get; set; }
-    public string UserId { get; set; } = "";
+    // Ders listesinin ait olduğu plan sahibi üye
+    public int MemberId { get; set; }
+    public FamilyMember? Member { get; set; }
     public string Name { get; set; } = "";
-    public User? User { get; set; }
 }

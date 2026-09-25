@@ -165,13 +165,12 @@ namespace PlanMee.API.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("MemberId")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "Date")
+                    b.HasIndex("MemberId", "Date")
                         .IsUnique();
 
                     b.ToTable("Days");
@@ -185,8 +184,17 @@ namespace PlanMee.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedByMemberId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("DayId")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsImported")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Note")
                         .IsRequired()
@@ -200,11 +208,187 @@ namespace PlanMee.API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedByMemberId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedByMemberId");
 
                     b.HasIndex("DayId");
 
+                    b.HasIndex("UpdatedByMemberId");
+
                     b.ToTable("Events");
+                });
+
+            modelBuilder.Entity("PlanMee.API.Models.Family", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Families");
+                });
+
+            modelBuilder.Entity("PlanMee.API.Models.FamilyMember", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("FamilyId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime?>("JoinedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LeftAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamilyId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FamilyMembers_FamilyId_Admin")
+                        .HasFilter("\"IsAdmin\"");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("\"UserId\" IS NOT NULL");
+
+                    b.ToTable("FamilyMembers");
+                });
+
+            modelBuilder.Entity("PlanMee.API.Models.Invitation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("CodeSalt")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("FailedCodeAttempts")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("FamilyId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("InvitedByMemberId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("LastSentAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("MemberId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<int>("SendCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<uint>("Version")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FamilyId");
+
+                    b.HasIndex("InvitedByMemberId");
+
+                    b.HasIndex("MemberId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("NormalizedEmail", "Status");
+
+                    b.ToTable("Invitations");
                 });
 
             modelBuilder.Entity("PlanMee.API.Models.StudyEntry", b =>
@@ -215,8 +399,17 @@ namespace PlanMee.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedByMemberId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("DayId")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsImported")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Minutes")
                         .HasColumnType("integer");
@@ -233,9 +426,19 @@ namespace PlanMee.API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedByMemberId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedByMemberId");
+
                     b.HasIndex("DayId");
+
+                    b.HasIndex("UpdatedByMemberId");
 
                     b.ToTable("StudyEntries");
                 });
@@ -248,17 +451,35 @@ namespace PlanMee.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedByMemberId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsImported")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("MemberId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedByMemberId")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("CreatedByMemberId");
+
+                    b.HasIndex("MemberId");
+
+                    b.HasIndex("UpdatedByMemberId");
 
                     b.ToTable("Subjects");
                 });
@@ -271,8 +492,17 @@ namespace PlanMee.API.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CreatedByMemberId")
+                        .HasColumnType("integer");
+
                     b.Property<int>("DayId")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("IsImported")
+                        .HasColumnType("boolean");
 
                     b.Property<int>("Minutes")
                         .HasColumnType("integer");
@@ -285,9 +515,19 @@ namespace PlanMee.API.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("UpdatedByMemberId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedByMemberId");
+
                     b.HasIndex("DayId");
+
+                    b.HasIndex("UpdatedByMemberId");
 
                     b.ToTable("TrainingEntries");
                 });
@@ -303,6 +543,11 @@ namespace PlanMee.API.Migrations
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -409,57 +654,157 @@ namespace PlanMee.API.Migrations
 
             modelBuilder.Entity("PlanMee.API.Models.Day", b =>
                 {
-                    b.HasOne("PlanMee.API.Models.User", "User")
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "Member")
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("MemberId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.Navigation("Member");
                 });
 
             modelBuilder.Entity("PlanMee.API.Models.Event", b =>
                 {
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("PlanMee.API.Models.Day", "Day")
                         .WithMany("Events")
                         .HasForeignKey("DayId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreatedBy");
+
                     b.Navigation("Day");
+
+                    b.Navigation("UpdatedBy");
+                });
+
+            modelBuilder.Entity("PlanMee.API.Models.FamilyMember", b =>
+                {
+                    b.HasOne("PlanMee.API.Models.Family", "Family")
+                        .WithMany("Members")
+                        .HasForeignKey("FamilyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PlanMee.API.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Family");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PlanMee.API.Models.Invitation", b =>
+                {
+                    b.HasOne("PlanMee.API.Models.Family", "Family")
+                        .WithMany()
+                        .HasForeignKey("FamilyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "InvitedBy")
+                        .WithMany()
+                        .HasForeignKey("InvitedByMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Family");
+
+                    b.Navigation("InvitedBy");
+
+                    b.Navigation("Member");
                 });
 
             modelBuilder.Entity("PlanMee.API.Models.StudyEntry", b =>
                 {
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("PlanMee.API.Models.Day", "Day")
                         .WithMany("StudyEntries")
                         .HasForeignKey("DayId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreatedBy");
+
                     b.Navigation("Day");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("PlanMee.API.Models.Subject", b =>
                 {
-                    b.HasOne("PlanMee.API.Models.User", "User")
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "CreatedBy")
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("CreatedByMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "Member")
+                        .WithMany()
+                        .HasForeignKey("MemberId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreatedBy");
+
+                    b.Navigation("Member");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("PlanMee.API.Models.TrainingEntry", b =>
                 {
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedByMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("PlanMee.API.Models.Day", "Day")
                         .WithMany("TrainingEntries")
                         .HasForeignKey("DayId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("PlanMee.API.Models.FamilyMember", "UpdatedBy")
+                        .WithMany()
+                        .HasForeignKey("UpdatedByMemberId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreatedBy");
+
                     b.Navigation("Day");
+
+                    b.Navigation("UpdatedBy");
                 });
 
             modelBuilder.Entity("PlanMee.API.Models.Day", b =>
@@ -469,6 +814,11 @@ namespace PlanMee.API.Migrations
                     b.Navigation("StudyEntries");
 
                     b.Navigation("TrainingEntries");
+                });
+
+            modelBuilder.Entity("PlanMee.API.Models.Family", b =>
+                {
+                    b.Navigation("Members");
                 });
 #pragma warning restore 612, 618
         }
