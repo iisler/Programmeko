@@ -1,6 +1,6 @@
 namespace PlanMee.API.Models;
 
-public class StudyEntry
+public class StudyEntry : AuditedEntity
 {
     public int Id { get; set; }
     public int DayId { get; set; }
