@@ -4,3 +4,8 @@ obj/
 .vs/
 .DS_Store
 dev-emails/
+
+# Yerel ortam / gizli dosyalar
+.env
+.env.*
+*.pfx

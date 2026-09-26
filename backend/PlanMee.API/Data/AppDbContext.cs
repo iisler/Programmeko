@@ -1,10 +1,14 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PlanMee.API.Models;
 
 namespace PlanMee.API.Data;
 
-public class AppDbContext : IdentityDbContext<User>
+// IDataProtectionKeyContext: Data Protection anahtarları (şifre sıfırlama / e-posta doğrulama
+// belirteçlerini imzalar) veritabanında saklanır. Böylece Render'da konteyner yeniden başlasa ya da
+// uykudan uyansa bile önceden gönderilmiş linkler geçerli kalır.
+public class AppDbContext : IdentityDbContext<User>, IDataProtectionKeyContext
 {
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -16,6 +20,7 @@ public class AppDbContext : IdentityDbContext<User>
     public DbSet<StudyEntry> StudyEntries => Set<StudyEntry>();
     public DbSet<TrainingEntry> TrainingEntries => Set<TrainingEntry>();
     public DbSet<Event> Events => Set<Event>();
+    public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

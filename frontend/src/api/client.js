@@ -8,8 +8,15 @@ export const AUTH_EXPIRED_EVENT = 'planmee:auth-expired';
 // 403 email_not_verified / family_required geldiğinde AuthContext durumu tazeler ve doğru ekrana yönlendirir.
 export const ACCOUNT_STATE_EVENT = 'planmee:account-state';
 
+// localhost varsayılanı yalnızca geliştirmede (npm run dev) kullanılır. Üretim derlemesinde VITE_API_URL
+// zorunludur (vite.config.js yoksa build'i durdurur); yine de boş kalırsa istek localhost'a değil,
+// sitenin kendi /api yoluna gider ve hata olarak görünür. Baştaki/sondaki boşluk ve sondaki "/" temizlenir.
+const API_URL = (
+  import.meta.env.VITE_API_URL?.trim() || (import.meta.env.DEV ? 'http://localhost:5002/api' : '/api')
+).replace(/\/+$/, '');
+
 const client = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5002/api',
+  baseURL: API_URL,
 });
 
 client.interceptors.request.use((config) => {

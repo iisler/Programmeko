@@ -50,5 +50,19 @@ public static class RateLimitPolicies
         });
     }
 
-    private static string Ip(HttpContext ctx) => ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+    // İstemci IP'si. Proxy arkasında (ForwardedHeaders:Enabled=true) bu değer UseForwardedHeaders tarafından,
+    // yalnızca güvenilen proxy'nin eklediği X-Forwarded-For girişinden belirlenir (ForwardedHeadersSetup.cs).
+    // IPv6 adresleri /64 önekine göre gruplanır: tek bir ev/abone genelde bütün bir /64 bloğuna sahiptir ve
+    // blok içindeki adresleri değiştirerek sınırları atlatabilirdi.
+    internal static string Ip(HttpContext ctx) => PartitionKey(ctx.Connection.RemoteIpAddress);
+
+    internal static string PartitionKey(System.Net.IPAddress? ip)
+    {
+        if (ip == null) return "unknown";
+        if (ip.IsIPv4MappedToIPv6) ip = ip.MapToIPv4();
+        if (ip.AddressFamily != System.Net.Sockets.AddressFamily.InterNetworkV6) return ip.ToString();
+        var bytes = ip.GetAddressBytes();
+        Array.Clear(bytes, 8, 8);
+        return new System.Net.IPAddress(bytes) + "/64";
+    }
 }
